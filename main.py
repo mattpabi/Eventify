@@ -91,6 +91,10 @@ if __name__ == "__main__":
     position_right = int(root.winfo_screenwidth() / 2 - window_width / 2)
     position_down = int(root.winfo_screenheight() / 2 - window_height / 2)
     root.geometry(f"{window_width}x{window_height}+{position_right}+{position_down}")
+
+    # Set the minimum and maximum window sizes
+    root.minsize(1152, 648)
+    root.maxsize(1920, 1080)
     
     # Set the logo for the app
     try:    
