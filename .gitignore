@@ -2,6 +2,8 @@
 *.DS_Store
 /images
 /tests
+*.sqlite3
+*.db
 
 
 # Byte-compiled / optimized / DLL files
