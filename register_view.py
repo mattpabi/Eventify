@@ -76,6 +76,10 @@ class RegisterView:
         confirm = self.confirm_entry.get()
         
         # Validate input
+        if not username.isalnum() or not password.isalnum():
+            messagebox.showerror("Error", "No special characters or spaces allowed in username or password")
+            return
+
         if not username or not password or not confirm:
             messagebox.showerror("Error", "All fields are required")
             return

@@ -68,8 +68,8 @@ class LoginView:
                                width=10, height=2, font=("Arial", 11))
         login_button.pack(side=tk.LEFT, padx=(0, 20))
         
-        register_button = tk.Button(button_frame, text="Register", command=self.show_register,
-                                  width=10, height=2, font=("Arial", 11))
+        register_button = tk.Button(button_frame, text="Register a new account", command=self.show_register,
+                                  width=20, height=2, font=("Arial", 11))
         register_button.pack(side=tk.LEFT)
     
     def login(self):
@@ -81,6 +81,11 @@ class LoginView:
             messagebox.showerror("Error", "Username and password are required")
             return
         
+        # Validate input
+        if not username.isalnum() or not password.isalnum():
+            messagebox.showerror("Error", "No special characters or spaces allowed in username or password")
+            return
+
         # Check credentials
         if self.db_manager.verify_user(username, password):
             messagebox.showinfo("Success", f"Welcome, {username}!")
