@@ -1,11 +1,10 @@
 # main.py - Main entry point for the application
 
-# main.py - Main entry point for the application
-
 import tkinter as tk
 from login_view import LoginView
 from database_manager import DatabaseManager
 import os
+import datetime
 
 class App:
     def __init__(self, root):
@@ -16,15 +15,83 @@ class App:
         self.root.resizable(True, True)
         
         # Initialize the database
-        self.db_manager = DatabaseManager()
-        self.db_manager.setup_database()
-        
-        # Preload admin account if it doesn't exist
-        if not self.db_manager.user_exists("admin"):
-            self.db_manager.create_user(os.environ.get("ADMIN_USERNAME"), os.environ.get("ADMIN_PASSWORD"), user_type="admin")
+        try:
+            self.db_manager = DatabaseManager()
+            self.initialize_database()
+        except Exception as e:
+            tk.messagebox.showerror("Database Error", f"Failed to initialize database: {e}")
+            root.destroy()
+            return
         
         # Start with login selection view
         self.show_login_selection()
+    
+    def initialize_database(self):
+        """Initialize the database with tables and initial data."""
+        # Set up the database schema
+        self.db_manager.setup_database()
+        
+        # Preload admin account if it doesn't exist
+        admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "admin2025")
+        
+        if not self.db_manager.user_exists(admin_username):
+            self.db_manager.create_user(admin_username, admin_password, user_type="admin")
+        
+        # Create some sample events if there are no future events
+        future_events = self.db_manager.get_future_events()
+        if not future_events:
+            self.create_sample_events()
+    
+    def create_sample_events(self):
+        """Create sample events for testing."""
+        # Calculate dates for sample events (starting tomorrow)
+        tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        two_weeks = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+        one_month = (datetime.datetime.now() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+        
+        # Sample events data
+        sample_events = [
+            {
+                "name": "The SpongeBob Musical",
+                "description": "The stakes are higher than ever in this dynamic stage musical, as SpongeBob and all of Bikini Bottom face the total annihilation of their undersea world. Chaos erupts. Lives hang in the balance. And just when all hope seems lost, a most unexpected hero rises up and takes center stage. The power of optimism really can save the world!",
+                "date": tomorrow,
+                "time": "18:00",
+                "venue": "Castle Hill High School auditorium",
+                "capacity": 550,
+                "price": 10.00
+            },
+            {
+                "name": "Comedy Night",
+                "description": "An evening of stand-up comedy featuring both established and up-and-coming comedians.",
+                "date": two_weeks,
+                "time": "20:00",
+                "venue": "Castle Hill High School auditorium",
+                "capacity": 550,
+                "price": 5.00
+            },
+            {
+                "name": "Tech Conference 2025",
+                "description": "Explore the latest innovations in technology with industry experts and thought leaders.",
+                "date": one_month,
+                "time": "09:00",
+                "venue": "Castle Hill High School auditorium",
+                "capacity": 550,
+                "price": 25.00
+            }
+        ]
+        
+        # Create each sample event
+        for event in sample_events:
+            self.db_manager.create_event(
+                name=event["name"],
+                description=event["description"],
+                date=event["date"],
+                time=event["time"],
+                venue=event["venue"],
+                capacity=event["capacity"],
+                price=event["price"]
+            )
     
     def show_login_selection(self):
         """Display the login selection page."""
@@ -93,7 +160,7 @@ if __name__ == "__main__":
     root.geometry(f"{window_width}x{window_height}+{position_right}+{position_down}")
 
     # Set the minimum and maximum window sizes
-    root.minsize(1152, 648)
+    root.minsize(1280, 720)
     root.maxsize(1920, 1080)
     
     # Set the logo for the app

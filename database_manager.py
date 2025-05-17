@@ -3,9 +3,10 @@
 import sqlite3
 import hashlib
 import os
+import datetime
 
 class DatabaseManager:
-    def __init__(self, db_name="user_auth.db"):
+    def __init__(self, db_name="stageset_db.db"):
         """Initialize the database manager with the given database name."""
         self.db_name = db_name
         
@@ -22,6 +23,21 @@ class DatabaseManager:
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
                 user_type TEXT DEFAULT 'customer',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create events table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                venue TEXT NOT NULL,
+                capacity INTEGER DEFAULT 550,
+                price REAL DEFAULT 0.0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -186,4 +202,195 @@ class DatabaseManager:
             return count > 0
         except Exception as e:
             print(f"Error checking if user exists: {e}")
+            return False
+    
+    # Event management methods
+    
+    def create_event(self, name, description, date, time, venue="Castle Hill High School auditorium", capacity=550, price=0.0):
+        """Create a new event in the database.
+        
+        Args:
+            name: The name of the event
+            description: The description of the event
+            date: The date of the event (YYYY-MM-DD)
+            time: The time of the event (HH:MM)
+            venue: The venue of the event (defaults to Castle Hill High School auditorium")
+            capacity: The maximum capacity of the event (fixed at 550)
+            price: The ticket price for the event
+            
+        Returns:
+            int: The ID of the new event or None if failed
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """INSERT INTO events 
+                   (name, description, date, time, venue, capacity, price) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (name, description, date, time, venue, capacity, price)
+            )
+            
+            # Get the ID of the newly inserted event
+            event_id = cursor.lastrowid
+            
+            conn.commit()
+            conn.close()
+            return event_id
+        except Exception as e:
+            print(f"Error creating event: {e}")
+            return None
+    
+    def get_all_events(self):
+        """Get all events from the database.
+        
+        Returns:
+            list: A list of event dictionaries
+        """
+        try:
+            conn = self._get_connection()
+            conn.row_factory = sqlite3.Row  # This enables dictionary access by column name
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT * FROM events ORDER BY date, time")
+            
+            # Convert to list of dictionaries
+            events = [dict(row) for row in cursor.fetchall()]
+            
+            conn.close()
+            return events
+        except Exception as e:
+            print(f"Error getting events: {e}")
+            return []
+    
+    def get_future_events(self):
+        """Get all future events from the database.
+        
+        Returns:
+            list: A list of future event dictionaries
+        """
+        try:
+            conn = self._get_connection()
+            conn.row_factory = sqlite3.Row  # This enables dictionary access by column name
+            cursor = conn.cursor()
+            
+            # Get the current date
+            current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            
+            cursor.execute(
+                "SELECT * FROM events WHERE date >= ? ORDER BY date, time",
+                (current_date,)
+            )
+            
+            # Convert to list of dictionaries
+            events = [dict(row) for row in cursor.fetchall()]
+            
+            conn.close()
+            return events
+        except Exception as e:
+            print(f"Error getting future events: {e}")
+            return []
+    
+    def get_event_by_id(self, event_id):
+        """Get an event by its ID.
+        
+        Args:
+            event_id: The ID of the event to retrieve
+            
+        Returns:
+            dict: The event data or None if not found
+        """
+        try:
+            conn = self._get_connection()
+            conn.row_factory = sqlite3.Row  # This enables dictionary access by column name
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "SELECT * FROM events WHERE id = ?",
+                (event_id,)
+            )
+            
+            event = cursor.fetchone()
+            
+            conn.close()
+            
+            if event:
+                return dict(event)
+            return None
+        except Exception as e:
+            print(f"Error getting event by ID: {e}")
+            return None
+    
+    def update_event(self, event_id, name=None, description=None, date=None, time=None, 
+                    venue="Castle Hill High School auditorium", capacity=550, price=None):
+        """Update an event in the database.
+        
+        Args:
+            event_id: The ID of the event to update
+            name: The new name of the event (optional)
+            description: The new description of the event (optional)
+            date: The new date of the event (optional)
+            time: The new time of the event (optional)
+            venue: The venue of the event (fixed as Castle Hill High School auditorium")
+            capacity: The capacity of the event (fixed at 550)
+            price: The new price of the event (optional)
+            
+        Returns:
+            bool: True if the event was updated successfully
+        """
+        try:
+            # Get the current event data
+            current_event = self.get_event_by_id(event_id)
+            if not current_event:
+                return False
+            
+            # Update with new values or keep current ones
+            name = name if name is not None else current_event['name']
+            description = description if description is not None else current_event['description']
+            date = date if date is not None else current_event['date']
+            time = time if time is not None else current_event['time']
+            price = price if price is not None else current_event['price']
+            
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """UPDATE events 
+                   SET name = ?, description = ?, date = ?, time = ?, 
+                       venue = ?, capacity = ?, price = ?
+                   WHERE id = ?""",
+                (name, description, date, time, venue, capacity, price, event_id)
+            )
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error updating event: {e}")
+            return False
+    
+    def delete_event(self, event_id):
+        """Delete an event from the database.
+        
+        Args:
+            event_id: The ID of the event to delete
+            
+        Returns:
+            bool: True if the event was deleted successfully
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "DELETE FROM events WHERE id = ?",
+                (event_id,)
+            )
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error deleting event: {e}")
             return False
