@@ -8,7 +8,12 @@ import datetime
 class DatabaseManager:
     def __init__(self, db_name="stageset_db.db"):
         """Initialise the database manager with the given database name."""
-        self.db_name = db_name
+
+        # Get the absolute path of the folder containing this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Join the script directory with the database filename
+        self.db_name = os.path.join(script_dir, db_name)
         
     def setup_database(self):
         """Create the database and tables if they don't exist."""
