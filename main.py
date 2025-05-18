@@ -1,6 +1,7 @@
 # main.py - Main entry point for the application
 
 import tkinter as tk
+from tkinter import messagebox
 from login_view import LoginView
 from database_manager import DatabaseManager
 import os
@@ -11,28 +12,28 @@ class App:
         """Initialise the main application."""
         self.root = root
         self.root.title("StageSet")
-        self.root.geometry("1366x768")
+        self.root.geometry("1366x720")
         self.root.resizable(True, True)
         
         # Attempt to initialise database three times.
-        print("Attempting to initialise database.\nPlease open the app again if this process fails.")
+        print("\nAttempting to initialise database.\nPlease open the app again if this process fails.")
         try:
-            print("Attempt 1", end="")
+            print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 1", end="")
             self.db_manager = DatabaseManager()
             self.initialise_database()
-            print(": Success")
+            print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
         except:
             try:
-                print("Attempt 3", end="")
+                print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 3", end="")
                 self.db_manager = DatabaseManager()
                 self.initialise_database()
-                print(": Success")
+                print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
             except:
                 try:
-                    print("Attempt 3", end="")
+                    print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 3", end="")
                     self.db_manager = DatabaseManager()
                     self.initialise_database()
-                    print(": Success")
+                    print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
                 except Exception as e:
                     tk.messagebox.showerror("Database Error", f"Failed to initialise database: {e}")
                     root.destroy()
@@ -163,13 +164,20 @@ class App:
         from admin_login_view import AdminLoginView
         AdminLoginView(self.root, self.db_manager, self.show_login_selection)
 
+    def on_close(self):
+        """Ask the user to confirm before closing the app."""
+        response = messagebox.askyesno('Exit', 'Are you sure you want to exit?')
+        if response:
+            print(f"\n{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | You have closed the app. We hope to see you again.\n")
+            self.root.destroy()
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     
     # Center the window on the screen
     window_width = 1366
-    window_height = 768
+    window_height = 720
     position_right = int(root.winfo_screenwidth() / 2 - window_width / 2)
     position_down = int(root.winfo_screenheight() / 2 - window_height / 2)
     root.geometry(f"{window_width}x{window_height}+{position_right}+{position_down}")
@@ -186,5 +194,8 @@ if __name__ == "__main__":
             root.iconphoto(True, tk.PhotoImage(file="/images/logo.png"))
         except:
             pass
+
+    # Set the close window protocol to show confirmation dialog
+    root.protocol('WM_DELETE_WINDOW', app.on_close)
     
     root.mainloop()
