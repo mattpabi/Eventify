@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 from edit_event_view import EditEventView
+from create_event_view import CreateEventView
 
 class AdminDashboardView:
     def __init__(self, root, db_manager, back_callback=None):
@@ -178,7 +179,7 @@ class AdminDashboardView:
             widget.destroy()
             
         # Show the create event form
-        AdminDashboardView(self.root, self.db_manager, self.refresh_dashboard)
+        CreateEventView(self.root, self.db_manager, self.refresh_dashboard)
     
     def refresh_dashboard(self):
         """Refresh the dashboard view."""
@@ -187,7 +188,7 @@ class AdminDashboardView:
             widget.destroy()
             
         # Recreate the dashboard
-        AdminDashboard(self.root, self.db_manager, self.back_callback)
+        AdminDashboardView(self.root, self.db_manager, self.back_callback)
     
     def edit_selected_event(self):
         """Edit the selected event."""
