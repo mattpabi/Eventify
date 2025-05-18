@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from register_view import RegisterView
+from user_dashboard_view import UserDashboardView
 
 class LoginView:
     def __init__(self, root, db_manager, back_callback=None, user_type="customer"):
@@ -88,10 +89,19 @@ class LoginView:
 
         # Check credentials
         if self.db_manager.verify_user(username, password):
-            messagebox.showinfo("Success", f"Welcome, {username}!")
-            # Here you would typically navigate to the main application view
+            # Navigate to user dashboard view
+            self.show_dashboard(username)
         else:
             messagebox.showerror("Error", "Invalid username or password")
+    
+    def show_dashboard(self, username):
+        """Navigate to the user dashboard view."""
+        # Clear the current frame
+        for widget in self.root.winfo_children():
+            widget.destroy()
+            
+        # Show user dashboard
+        UserDashboardView(self.root, self.db_manager, username, self.back_callback)
     
     def show_register(self):
         """Switch to the registration view."""
