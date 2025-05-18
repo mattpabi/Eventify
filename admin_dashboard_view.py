@@ -7,7 +7,7 @@ from create_event_view import CreateEventView
 
 class AdminDashboardView:
     def __init__(self, root, db_manager, back_callback=None):
-        """Initialize the admin dashboard view with tkinter widgets."""
+        """Initialise the admin dashboard view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.back_callback = back_callback

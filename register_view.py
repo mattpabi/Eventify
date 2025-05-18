@@ -5,7 +5,7 @@ from tkinter import messagebox
 
 class RegisterView:
     def __init__(self, root, db_manager, back_callback=None):
-        """Initialize the registration view with tkinter widgets."""
+        """Initialise the registration view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.back_callback = back_callback

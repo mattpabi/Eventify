@@ -7,7 +7,7 @@ import datetime
 
 class DatabaseManager:
     def __init__(self, db_name="stageset_db.db"):
-        """Initialize the database manager with the given database name."""
+        """Initialise the database manager with the given database name."""
         self.db_name = db_name
         
     def setup_database(self):

@@ -6,7 +6,7 @@ from admin_dashboard_view import AdminDashboardView
 
 class AdminLoginView:
     def __init__(self, root, db_manager, back_callback=None):
-        """Initialize the admin login view with tkinter widgets."""
+        """Initialise the admin login view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.back_callback = back_callback

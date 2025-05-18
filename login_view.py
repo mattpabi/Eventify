@@ -6,7 +6,7 @@ from register_view import RegisterView
 
 class LoginView:
     def __init__(self, root, db_manager, back_callback=None, user_type="customer"):
-        """Initialize the login view with tkinter widgets."""
+        """Initialise the login view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.back_callback = back_callback

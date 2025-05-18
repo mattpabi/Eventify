@@ -8,26 +8,41 @@ import datetime
 
 class App:
     def __init__(self, root):
-        """Initialize the main application."""
+        """Initialise the main application."""
         self.root = root
         self.root.title("StageSet")
         self.root.geometry("1366x768")
         self.root.resizable(True, True)
         
-        # Initialize the database
+        # Attempt to initialise database three times.
+        print("Attempting to initialise database.\nPlease open the app again if this process fails.")
         try:
+            print("Attempt 1", end="")
             self.db_manager = DatabaseManager()
-            self.initialize_database()
-        except Exception as e:
-            tk.messagebox.showerror("Database Error", f"Failed to initialize database: {e}")
-            root.destroy()
-            return
+            self.initialise_database()
+            print(": Success")
+        except:
+            try:
+                print("Attempt 3", end="")
+                self.db_manager = DatabaseManager()
+                self.initialise_database()
+                print(": Success")
+            except:
+                try:
+                    print("Attempt 3", end="")
+                    self.db_manager = DatabaseManager()
+                    self.initialise_database()
+                    print(": Success")
+                except Exception as e:
+                    tk.messagebox.showerror("Database Error", f"Failed to initialise database: {e}")
+                    root.destroy()
+                    return
         
         # Start with login selection view
         self.show_login_selection()
     
-    def initialize_database(self):
-        """Initialize the database with tables and initial data."""
+    def initialise_database(self):
+        """Initialise the database with tables and initial data."""
         # Set up the database schema
         self.db_manager.setup_database()
         

@@ -7,7 +7,7 @@ import re
 
 class EditEventView:
     def __init__(self, root, db_manager, event_id, back_callback=None):
-        """Initialize the event editing view with tkinter widgets."""
+        """Initialise the event editing view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.event_id = event_id

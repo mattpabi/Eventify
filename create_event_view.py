@@ -7,7 +7,7 @@ import re
 
 class CreateEventView:
     def __init__(self, root, db_manager, back_callback=None):
-        """Initialize the event creation view with tkinter widgets."""
+        """Initialise the event creation view with tkinter widgets."""
         self.root = root
         self.db_manager = db_manager
         self.back_callback = back_callback
