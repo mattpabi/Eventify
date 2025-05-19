@@ -6,6 +6,10 @@ class StageView:
     def __init__(self, root, db_manager, event_id, username, back_callback=None):
         self.db_manager = db_manager
         self.root = root
+
+        # Set the minimum and maximum window sizes
+        root.minsize(1280, 720)
+        root.maxsize(1920, 1080)
         self.root.resizable(True, True)
 
         # Store event_id and username as attributes for easy access
@@ -40,8 +44,6 @@ class StageView:
         self.load_images()
         self.setup_layout()
         self.initialize_seats()
-        self.add_seat_legend()
-        self.add_info_panel()
         self.update_reserved_display()
         self.update_selected_display()
 
@@ -61,49 +63,117 @@ class StageView:
             self.seat_img = self.seat_img_selected = self.seat_img_reserved = self.seat_img_user_reserved = None
 
     def setup_layout(self):
+        # Main container that will expand to fill the root window
         self.master = tk.Frame(self.root)
         self.master.pack(expand=True, fill='both')
+        
+        # Configure the master frame with a 3-column layout
+        # Left column for margin, center for content, right for info panel
+        self.master.grid_columnconfigure(0, weight=1)   # Left margin
+        self.master.grid_columnconfigure(1, weight=10)  # Center content - give more weight
+        self.master.grid_columnconfigure(2, weight=3)   # Right panel for info - fixed width
+        
+        self.master.grid_rowconfigure(0, weight=1)      # Top margin
+        self.master.grid_rowconfigure(1, minsize=50)    # Event info row
+        self.master.grid_rowconfigure(2, minsize=50)    # Stage row
+        self.master.grid_rowconfigure(3, weight=1)      # Space before seats
+        self.master.grid_rowconfigure(4, weight=5)      # Seats content - main content area
+        self.master.grid_rowconfigure(5, weight=1)      # Bottom margin
+        
+        # Header frame - holds back button and event info
+        header_frame = tk.Frame(self.master)
+        header_frame.grid(row=1, column=1, sticky='ew')
+        header_frame.grid_columnconfigure(0, weight=0)  # Back button
+        header_frame.grid_columnconfigure(1, weight=1)  # Event info
         
         # Add back button if back callback exists
         if self.back_callback:
             back_button = tk.Button(
-                self.master, 
+                header_frame, 
                 text="Back to Dashboard", 
                 command=self.back_callback,
                 font=("Arial", 10),
                 width=16
             )
-            back_button.grid(row=0, column=0, pady=10, padx=10, sticky='nw')
+            back_button.grid(row=0, column=0, pady=10, padx=10, sticky='w')
 
         # Display event info
         if hasattr(self, 'event') and self.event:
             event_info = f"{self.event['name']} - {self.event['date']} {self.event['time']}"
-            event_label = tk.Label(self.master, text=event_info, font=("Arial", 12, "bold"))
-            event_label.grid(row=0, column=1, pady=10, sticky='n')
+            event_label = tk.Label(header_frame, text=event_info, font=("Arial", 12, "bold"))
+            event_label.grid(row=0, column=1, pady=10, sticky='ew')
 
+        # Stage area
         self.stage = tk.Label(self.master, text="STAGE", bg="gold", font=("Arial", 16, "bold"), width=50, height=3)
-        self.stage.grid(row=1, column=1, pady=(0, 2), sticky='n')
+        self.stage.grid(row=2, column=1, pady=(0, 20), sticky='ew')
 
-        for gap_row in range(2, 7):
-            tk.Label(self.master, text="").grid(row=gap_row, column=1)
+        # Create a scrollable canvas for the seating area to handle large seat layouts
+        self.canvas_container = tk.Frame(self.master)
+        self.canvas_container.grid(row=4, column=1, sticky='nsew')
+        self.canvas_container.grid_columnconfigure(0, weight=1)
+        self.canvas_container.grid_rowconfigure(0, weight=1)
+        
+        # Add canvas with scrollbars if needed
+        self.canvas = tk.Canvas(self.canvas_container)
+        self.canvas.grid(row=0, column=0, sticky='nsew')
+        
+        # Scrollbars for canvas
+        v_scrollbar = tk.Scrollbar(self.canvas_container, orient="vertical", command=self.canvas.yview)
+        h_scrollbar = tk.Scrollbar(self.canvas_container, orient="horizontal", command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+        
+        # Only show scrollbars when needed
+        v_scrollbar.grid(row=0, column=1, sticky='ns')
+        h_scrollbar.grid(row=1, column=0, sticky='ew')
+            
+        # Frame inside canvas to hold all seats
+        self.frame = tk.Frame(self.canvas)
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.frame, anchor='nw')
+        
+        # Update the scrollregion when the frame size changes
+        self.frame.bind("<Configure>", self.on_frame_configure)
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+        
+        # Create the info panel on the right side of the main window
+        self.create_info_panel()
 
-        self.master.grid_columnconfigure(0, minsize=12)
-        self.master.grid_columnconfigure(1, weight=1)
-        self.frame = tk.Frame(self.master)
-        self.frame.grid(row=7, column=1, sticky='n')
+    def on_frame_configure(self, event):
+        """Update the scroll region to encompass the inner frame"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_canvas_configure(self, event):
+        """When canvas is resized, resize the inner frame to match"""
+        # Calculate center position
+        canvas_width = event.width
+        frame_width = self.frame.winfo_reqwidth()
+        
+        # Center the frame in the canvas
+        if frame_width < canvas_width:
+            # If the frame is smaller than the canvas, center it
+            new_x = (canvas_width - frame_width) / 2
+            self.canvas.coords(self.canvas_window, new_x, 0)
+        else:
+            # Otherwise keep it at the left edge
+            self.canvas.coords(self.canvas_window, 0, 0)
 
     def initialize_seats(self):
         self.seat_buttons = []
+        
+        # Calculate the center column to ensure seats are centered
+        max_seats = max(row_info[1] for row_info in self.rows)
+        center_col = max_seats + 5  # Provide some extra space
+        
         for r, (row_label, total_seats) in enumerate(self.rows):
             left_count = total_seats // 2
             right_count = total_seats - left_count
 
+            # Row labels (left)
             tk.Label(self.frame, text=row_label, font=self.label_font, width=2, anchor='e').grid(
-                row=r, column=0, padx=0, pady=0, sticky='e')
+                row=r, column=center_col - left_count - 1, padx=0, pady=0, sticky='e')
 
             # Left seats
             for c in range(left_count):
-                col = 18 - left_count + c + 1
+                col = center_col - left_count + c
                 seat_num = c + 1
                 seat_id = (row_label, seat_num)
                 selected = [False]
@@ -132,11 +202,12 @@ class StageView:
                 btn.grid(row=r, column=col, padx=0, pady=0)
                 self.seat_buttons.append((btn, seat_id, selected))
 
-            tk.Label(self.frame, text="", width=1).grid(row=r, column=19)
+            # Middle aisle
+            tk.Label(self.frame, text="", width=2).grid(row=r, column=center_col)
 
             # Right seats
             for c in range(right_count):
-                col = 20 + c
+                col = center_col + 1 + c
                 seat_num = left_count + c + 1
                 seat_id = (row_label, seat_num)
                 selected = [False]
@@ -165,45 +236,55 @@ class StageView:
                 btn.grid(row=r, column=col, padx=0, pady=0)
                 self.seat_buttons.append((btn, seat_id, selected))
 
-            for c in range(right_count, 18):
-                col = 20 + c
-                tk.Label(self.frame, text="", width=2).grid(row=r, column=col)
-
+            # Row labels (right)
             tk.Label(self.frame, text=row_label, font=self.label_font, width=2, anchor='w').grid(
-                row=r, column=38, padx=0, pady=0, sticky='w')
+                row=r, column=center_col + right_count + 1, padx=0, pady=0, sticky='w')
 
-    def add_seat_legend(self):
-        legend_row = len(self.rows) + 1
-        legend_frame = tk.Frame(self.frame)
-        legend_frame.grid(row=legend_row, column=0, columnspan=39, pady=10)
-        legend_frame.grid_columnconfigure(0, weight=1)
+    def create_seat_legend(self, parent):
+        """Create the seat legend in the right panel."""
+        legend_frame = tk.LabelFrame(parent, text="Seat Legend", font=("Arial", 11, "bold"), padx=10, pady=10)
+        legend_frame.pack(fill='x', expand=False, pady=(15, 0))
+        
         legends = [
             (self.seat_img, "Available"),
-            (self.seat_img_reserved, "Unavailable"),
             (self.seat_img_selected, "Selected"),
+            (self.seat_img_reserved, "Unavailable"),
             (self.seat_img_user_reserved, "Your Reservation")
         ]
+        
+        # Use a grid layout for the legend items - 2 columns
         for i, (img, text) in enumerate(legends):
-            item_frame = tk.Frame(legend_frame)
-            item_frame.grid(row=0, column=i, padx=15)
-            label_img = tk.Label(item_frame, image=img)
-            label_img.pack(side='top')
-            label_text = tk.Label(item_frame, text=text, font=("Arial", 10))
-            label_text.pack(side='top')
+            row = i // 2
+            col = i % 2
+            
+            legend_item = tk.Frame(legend_frame)
+            legend_item.grid(row=row, column=col, padx=10, pady=5, sticky='w')
+            
+            label_img = tk.Label(legend_item, image=img)
+            label_img.pack(side='left', padx=(0, 5))
+            
+            label_text = tk.Label(legend_item, text=text, font=("Arial", 9))
+            label_text.pack(side='left')
+        
+        # Store images reference
         self.legend_images = [img for img, _ in legends]
 
-    def add_info_panel(self):
-        # Place 5 rows after the legend
-        info_panel_row = len(self.rows) + 1 + 5
-        self.info_panel = tk.Frame(self.frame)
-        self.info_panel.grid(row=info_panel_row, column=0, columnspan=39, pady=10, sticky='n')
-
+    def create_info_panel(self):
+        """Create the info panel with reserved and selected seats on the right side."""
+        # Right side panel container
+        right_panel = tk.Frame(self.master, bd=0)
+        right_panel.grid(row=1, column=2, rowspan=4, sticky='nsew', padx=10, pady=10)
+        
+        # Add a header for the right panel
+        info_header = tk.Label(right_panel, text="Seat Information", font=("Arial", 14, "bold"))
+        info_header.pack(anchor='n', pady=(0, 15))
+        
         # Reserved Seats Section
-        self.reserved_frame = tk.LabelFrame(self.info_panel, text="Your Reserved Seats", font=("Arial", 10, "bold"))
-        self.reserved_frame.pack(side='left', padx=10, fill='y')
+        self.reserved_frame = tk.LabelFrame(right_panel, text="Your Reserved Seats", font=("Arial", 11, "bold"), padx=10, pady=10)
+        self.reserved_frame.pack(fill='x', expand=False, pady=(0, 15))
 
-        self.reserved_listbox = tk.Listbox(self.reserved_frame, height=8, width=20, exportselection=False)
-        self.reserved_listbox.pack(side='left', fill='y')
+        self.reserved_listbox = tk.Listbox(self.reserved_frame, height=6, width=20, exportselection=False, font=("Arial", 10))
+        self.reserved_listbox.pack(side='left', fill='both', expand=True)
         reserved_scroll = tk.Scrollbar(self.reserved_frame, orient='vertical', command=self.reserved_listbox.yview)
         reserved_scroll.pack(side='right', fill='y')
         self.reserved_listbox.config(yscrollcommand=reserved_scroll.set)
@@ -213,21 +294,35 @@ class StageView:
         self.reserved_listbox.bind("<FocusIn>", lambda e: self.root.focus())
 
         # Selected Seats Section
-        self.selected_frame = tk.LabelFrame(self.info_panel, text="Your Selected Seats", font=("Arial", 10, "bold"))
-        self.selected_frame.pack(side='left', padx=10, fill='y')
+        self.selected_frame = tk.LabelFrame(right_panel, text="Your Selected Seats", font=("Arial", 11, "bold"), padx=10, pady=10)
+        self.selected_frame.pack(fill='x', expand=False, pady=(0, 15))
 
-        self.selected_listbox = tk.Listbox(self.selected_frame, height=8, width=20, exportselection=False)
-        self.selected_listbox.pack(side='left', fill='y')
+        self.selected_listbox = tk.Listbox(self.selected_frame, height=6, width=20, exportselection=False, font=("Arial", 10))
+        self.selected_listbox.pack(side='left', fill='both', expand=True)
         selected_scroll = tk.Scrollbar(self.selected_frame, orient='vertical', command=self.selected_listbox.yview)
         selected_scroll.pack(side='right', fill='y')
         self.selected_listbox.config(yscrollcommand=selected_scroll.set)
 
-        # Book Button (below selected seats)
-        self.button_panel = tk.Frame(self.info_panel)
-        self.button_panel.pack(side='left', padx=20, anchor='n', fill='y')
-        self.book_button = tk.Button(self.button_panel, text="Book", font=("Arial", 12, "bold"),
-                                     state='disabled', command=self.book_selected_seats)
-        self.book_button.pack(pady=(50, 0), anchor='n')  # 50px top padding for vertical spacing
+        # Booking section
+        booking_frame = tk.LabelFrame(right_panel, text="Booking", font=("Arial", 11, "bold"), padx=10, pady=10)
+        booking_frame.pack(fill='x', expand=False)
+        
+        # Price info (placeholder - you can add real pricing calculation here)
+        if hasattr(self, 'event') and self.event:
+            price_label = tk.Label(booking_frame, text=f"Price per seat: ${self.event['price']:.2f}", font=("Arial", 10))
+            price_label.pack(anchor='w', pady=(0, 10))
+            
+            # Add a total price label that will be updated
+            self.total_price_label = tk.Label(booking_frame, text="Total to be paid upon entry: $0.00", font=("Arial", 10, "bold"))
+            self.total_price_label.pack(anchor='w', pady=(0, 15))
+        
+        # Book button
+        self.book_button = tk.Button(booking_frame, text="Book Selected Seats", font=("Arial", 11, "bold"),
+                                     state='disabled', command=self.book_selected_seats, width=18, height=2)
+        self.book_button.pack(pady=5)
+        
+        # Legend section
+        self.create_seat_legend(right_panel)
 
     def update_reserved_display(self):
         self.reserved_listbox.delete(0, tk.END)
@@ -238,14 +333,24 @@ class StageView:
             self.reserved_listbox.insert(tk.END, "No reserved seats.")
 
     def update_selected_display(self):
+        """Update the selected seats display and total price."""
         self.selected_listbox.delete(0, tk.END)
         if self.selected_seats:
             for row, num in sorted(self.selected_seats):
                 self.selected_listbox.insert(tk.END, f"{row}{num}")
             self.book_button.config(state='normal')
+            
+            # Update total price if we have event info
+            if hasattr(self, 'event') and self.event and hasattr(self, 'total_price_label'):
+                total = len(self.selected_seats) * self.event['price']
+                self.total_price_label.config(text=f"Total to be paid upon entry: ${total:.2f}")
         else:
             self.selected_listbox.insert(tk.END, "No seats selected.")
             self.book_button.config(state='disabled')
+            
+            # Reset total price
+            if hasattr(self, 'total_price_label'):
+                self.total_price_label.config(text="Total to be paid upon entry: $0.00")
 
     def toggle_seat(self, btn, selected, seat_id):
         if selected[0]:
