@@ -38,8 +38,11 @@ class StageView:
         user_reserved_seats_list = self.db_manager.get_user_reserved_seats(self.event_id, self.current_username)
         self.user_reserved_seats = set(user_reserved_seats_list)
 
+        # Get user's current reservation count
+        self.user_reservation_count = self.db_manager.get_user_reservation_count(self.event_id, self.current_username)
+
         self.selected_seats = set()
-        self.seat_buttons = []
+        self.seat_buttons = {}  # Changed to dictionary to store seat buttons by seat_id
 
         self.load_images()
         self.setup_layout()
@@ -157,7 +160,7 @@ class StageView:
             self.canvas.coords(self.canvas_window, 0, 0)
 
     def initialize_seats(self):
-        self.seat_buttons = []
+        self.seat_buttons = {}
         
         # Calculate the center column to ensure seats are centered
         max_seats = max(row_info[1] for row_info in self.rows)
@@ -176,31 +179,7 @@ class StageView:
                 col = center_col - left_count + c
                 seat_num = c + 1
                 seat_id = (row_label, seat_num)
-                selected = [False]
-
-                if seat_id in self.reserved_seats:
-                    btn_img = self.seat_img_reserved
-                    state = "disabled"
-                elif seat_id in self.user_reserved_seats:
-                    btn_img = self.seat_img_user_reserved
-                    state = "disabled"
-                else:
-                    btn_img = self.seat_img
-                    state = "normal"
-
-                btn = tk.Button(
-                    self.frame, image=btn_img, width=24, height=24,
-                    padx=0, pady=0, borderwidth=0, highlightthickness=0,
-                    relief="flat", takefocus=0,
-                    bg=self.frame["bg"], activebackground=self.frame["bg"],
-                    state=state
-                )
-
-                if state == "normal":
-                    btn.config(command=lambda b=btn, s=selected, sid=seat_id: self.toggle_seat(b, s, sid))
-
-                btn.grid(row=r, column=col, padx=0, pady=0)
-                self.seat_buttons.append((btn, seat_id, selected))
+                self.create_seat_button(r, col, seat_id)
 
             # Middle aisle
             tk.Label(self.frame, text="", width=2).grid(row=r, column=center_col)
@@ -210,35 +189,40 @@ class StageView:
                 col = center_col + 1 + c
                 seat_num = left_count + c + 1
                 seat_id = (row_label, seat_num)
-                selected = [False]
-
-                if seat_id in self.reserved_seats:
-                    btn_img = self.seat_img_reserved
-                    state = "disabled"
-                elif seat_id in self.user_reserved_seats:
-                    btn_img = self.seat_img_user_reserved
-                    state = "disabled"
-                else:
-                    btn_img = self.seat_img
-                    state = "normal"
-
-                btn = tk.Button(
-                    self.frame, image=btn_img, width=24, height=24,
-                    padx=0, pady=0, borderwidth=0, highlightthickness=0,
-                    relief="flat", takefocus=0,
-                    bg=self.frame["bg"], activebackground=self.frame["bg"],
-                    state=state
-                )
-
-                if state == "normal":
-                    btn.config(command=lambda b=btn, s=selected, sid=seat_id: self.toggle_seat(b, s, sid))
-
-                btn.grid(row=r, column=col, padx=0, pady=0)
-                self.seat_buttons.append((btn, seat_id, selected))
+                self.create_seat_button(r, col, seat_id)
 
             # Row labels (right)
             tk.Label(self.frame, text=row_label, font=self.label_font, width=2, anchor='w').grid(
                 row=r, column=center_col + right_count + 1, padx=0, pady=0, sticky='w')
+
+    def create_seat_button(self, row, col, seat_id):
+        """Create a seat button with appropriate state and command."""
+        if seat_id in self.reserved_seats:
+            btn_img = self.seat_img_reserved
+            state = "disabled"
+            command = None
+        elif seat_id in self.user_reserved_seats:
+            btn_img = self.seat_img_user_reserved
+            state = "normal"  # Enable user's reserved seats for cancellation
+            command = lambda sid=seat_id: self.cancel_seat_reservation(sid)
+        else:
+            btn_img = self.seat_img
+            state = "normal"
+            command = lambda sid=seat_id: self.toggle_seat(sid)
+
+        btn = tk.Button(
+            self.frame, image=btn_img, width=24, height=24,
+            padx=0, pady=0, borderwidth=0, highlightthickness=0,
+            relief="flat", takefocus=0,
+            bg=self.frame["bg"], activebackground=self.frame["bg"],
+            state=state
+        )
+
+        if command:
+            btn.config(command=command)
+
+        btn.grid(row=row, column=col, padx=0, pady=0)
+        self.seat_buttons[seat_id] = {"button": btn, "selected": seat_id in self.selected_seats}
 
     def create_seat_legend(self, parent):
         """Create the seat legend in the right panel."""
@@ -249,7 +233,7 @@ class StageView:
             (self.seat_img, "Available"),
             (self.seat_img_selected, "Selected"),
             (self.seat_img_reserved, "Unavailable"),
-            (self.seat_img_user_reserved, "Your Reservation")
+            (self.seat_img_user_reserved, "Your Reservation (Click to Cancel)")
         ]
         
         # Use a grid layout for the legend items - 2 columns
@@ -279,6 +263,14 @@ class StageView:
         info_header = tk.Label(right_panel, text="Seat Information", font=("Arial", 14, "bold"))
         info_header.pack(anchor='n', pady=(0, 15))
         
+        # Reservation limit information
+        self.reservation_limit_label = tk.Label(
+            right_panel, 
+            text=f"Reservation Limit: {self.user_reservation_count}/4 seats", 
+            font=("Arial", 11, "bold")
+        )
+        self.reservation_limit_label.pack(anchor='n', pady=(0, 15))
+        
         # Reserved Seats Section
         self.reserved_frame = tk.LabelFrame(right_panel, text="Your Reserved Seats", font=("Arial", 11, "bold"), padx=10, pady=10)
         self.reserved_frame.pack(fill='x', expand=False, pady=(0, 15))
@@ -288,11 +280,7 @@ class StageView:
         reserved_scroll = tk.Scrollbar(self.reserved_frame, orient='vertical', command=self.reserved_listbox.yview)
         reserved_scroll.pack(side='right', fill='y')
         self.reserved_listbox.config(yscrollcommand=reserved_scroll.set)
-        # Make reserved seats listbox non-interactive
-        self.reserved_listbox.bind("<Button-1>", lambda e: "break")
-        self.reserved_listbox.bind("<B1-Motion>", lambda e: "break")
-        self.reserved_listbox.bind("<FocusIn>", lambda e: self.root.focus())
-
+        
         # Selected Seats Section
         self.selected_frame = tk.LabelFrame(right_panel, text="Your Selected Seats", font=("Arial", 11, "bold"), padx=10, pady=10)
         self.selected_frame.pack(fill='x', expand=False, pady=(0, 15))
@@ -317,8 +305,8 @@ class StageView:
             self.total_price_label.pack(anchor='w', pady=(0, 15))
         
         # Book button
-        self.book_button = tk.Button(booking_frame, text="Book Selected Seats", font=("Arial", 11, "bold"),
-                                     state='disabled', command=self.book_selected_seats, width=18, height=2)
+        self.book_button = tk.Button(booking_frame, text="Reserve Selected Seats", font=("Arial", 11, "bold"),
+                                     state='disabled', command=self.reserve_selected_seats, width=18, height=2)
         self.book_button.pack(pady=5)
         
         # Legend section
@@ -331,6 +319,10 @@ class StageView:
                 self.reserved_listbox.insert(tk.END, f"{row}{num}")
         else:
             self.reserved_listbox.insert(tk.END, "No reserved seats.")
+        
+        # Update reservation limit label
+        self.user_reservation_count = self.db_manager.get_user_reservation_count(self.event_id, self.current_username)
+        self.reservation_limit_label.config(text=f"Reservation Limit: {self.user_reservation_count}/4 seats")
 
     def update_selected_display(self):
         """Update the selected seats display and total price."""
@@ -338,7 +330,13 @@ class StageView:
         if self.selected_seats:
             for row, num in sorted(self.selected_seats):
                 self.selected_listbox.insert(tk.END, f"{row}{num}")
-            self.book_button.config(state='normal')
+            
+            # Only enable booking if user won't exceed 4 total reservations
+            remaining_slots = 4 - self.user_reservation_count
+            if len(self.selected_seats) <= remaining_slots:
+                self.book_button.config(state='normal')
+            else:
+                self.book_button.config(state='disabled')
             
             # Update total price if we have event info
             if hasattr(self, 'event') and self.event and hasattr(self, 'total_price_label'):
@@ -352,46 +350,113 @@ class StageView:
             if hasattr(self, 'total_price_label'):
                 self.total_price_label.config(text="Total to be paid upon entry: $0.00")
 
-    def toggle_seat(self, btn, selected, seat_id):
-        if selected[0]:
+    def toggle_seat(self, seat_id):
+        """Toggle selection state of a seat."""
+        btn_data = self.seat_buttons.get(seat_id)
+        if not btn_data:
+            return
+        
+        btn = btn_data["button"]
+        selected = btn_data["selected"]
+        
+        # Check if adding this seat would exceed the 4-seat limit
+        if not selected and self.user_reservation_count + len(self.selected_seats) >= 4:
+            messagebox.showwarning("Reservation Limit", 
+                                  f"You can only reserve a maximum of 4 seats per event. You currently have "
+                                  f"{self.user_reservation_count} reserved seats.")
+            return
+        
+        if selected:
             btn.config(image=self.seat_img)
-            selected[0] = False
+            btn_data["selected"] = False
             self.selected_seats.discard(seat_id)
         else:
             btn.config(image=self.seat_img_selected)
-            selected[0] = True
+            btn_data["selected"] = True
             self.selected_seats.add(seat_id)
+        
         self.update_selected_display()
 
+    def cancel_seat_reservation(self, seat_id):
+        """Cancel a reserved seat."""
+        if seat_id not in self.user_reserved_seats:
+            return
+        
+        row, num = seat_id
+        seat_label = f"{row}{num}"
+        
+        # Ask for confirmation
+        confirm = messagebox.askyesno(
+            "Cancel Reservation", 
+            f"Are you sure you want to cancel your reservation for seat {seat_label}?"
+        )
+        
+        if confirm:
+            success = self.db_manager.cancel_reservation(
+                self.current_username, self.event_id, row, num
+            )
+            
+            if success:
+                messagebox.showinfo("Reservation Cancelled", f"Your reservation for seat {seat_label} has been cancelled.")
+                # Update our data
+                self.user_reserved_seats.remove(seat_id)
+                # Update display
+                self.update_reserved_display()
+                # Update button
+                self.refresh_seat_buttons()
+            else:
+                messagebox.showerror("Error", f"Failed to cancel reservation for seat {seat_label}.")
+
     def refresh_seat_buttons(self):
-        # Re-fetch reserved seats (excluding current user)
+        # Re-fetch reserved seats 
         reserved_seats_list = self.db_manager.get_reserved_seats(self.event_id, self.current_username)
         self.reserved_seats = set(reserved_seats_list)
+        
         user_reserved_seats_list = self.db_manager.get_user_reserved_seats(self.event_id, self.current_username)
         self.user_reserved_seats = set(user_reserved_seats_list)
+        
         # Destroy all seat buttons and recreate
-        for btn, _, _ in self.seat_buttons:
-            btn.destroy()
+        for seat_id, seat_data in self.seat_buttons.items():
+            if "button" in seat_data:
+                seat_data["button"].destroy()
+        
         self.seat_buttons.clear()
         self.initialize_seats()
 
-    def book_selected_seats(self):
+    def reserve_selected_seats(self):
         seats_to_reserve = list(self.selected_seats)
         if not seats_to_reserve:
             messagebox.showwarning("No Seats Selected", "Please select at least one seat to book.")
+            return
+        
+        # Check if adding these seats would exceed the 4-seat limit
+        total_seats_after = self.user_reservation_count + len(seats_to_reserve)
+        if total_seats_after > 4:
+            messagebox.showwarning(
+                "Reservation Limit Exceeded", 
+                f"You can only reserve a maximum of 4 seats per event. You have {self.user_reservation_count} "
+                f"seats already reserved. Please select no more than {4 - self.user_reservation_count} additional seats."
+            )
             return
 
         result = self.db_manager.reserve_seats(self.current_username, self.event_id, seats_to_reserve)
 
         if result['success']:
             booked_seats = ', '.join([f"{row}{num}" for row, num in result['reserved']])
-            messagebox.showinfo("Booking Successful", f"You have booked seats: {booked_seats}")
-            # Refresh reserved seats from database
+            messagebox.showinfo("Booking Successful", f"You have reserved seats: {booked_seats}")
+            
+            # Refresh reservation data
+            self.user_reservation_count += len(result['reserved'])
             user_reserved_seats_list = self.db_manager.get_user_reserved_seats(self.event_id, self.current_username)
             self.user_reserved_seats = set(user_reserved_seats_list)
+            
             self.selected_seats.clear()
             self.update_reserved_display()
             self.update_selected_display()
             self.refresh_seat_buttons()
         else:
-            messagebox.showerror("Booking Failed", "There was an error booking your seats, please try again.")
+            failed_seats = ', '.join([f"{row}{num}" for row, num in result['failed']])
+            if failed_seats:
+                messagebox.showerror("Booking Failed", f"Could not reserve seats: {failed_seats}. They may have been taken by another user.")
+            else:
+                messagebox.showerror("Booking Failed", "There was an error booking your seats, please try again.")

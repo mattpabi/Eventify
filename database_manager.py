@@ -464,7 +464,7 @@ class DatabaseManager:
     
     def reserve_seats(self, username, event_id, seats):
         """
-        Reserve multiple seats for a user for a specific event.
+        Reserve multiple seats for a user for a specific event, enforcing the 4-seat limit.
 
         Args:
             username (str): The username reserving the seats.
@@ -475,11 +475,23 @@ class DatabaseManager:
             dict: {
                 'success': bool,
                 'reserved': list of (seat_row, seat_number) reserved,
-                'failed': list of (seat_row, seat_number) not reserved (e.g., already taken)
+                'failed': list of (seat_row, seat_number) not reserved,
+                'message': str or None explanation of any failure
             }
         """
         reserved = []
         failed = []
+        message = None
+        
+        # Check current reservation count
+        current_count = self.get_user_reservation_count(event_id, username)
+        
+        # Check if adding these seats would exceed the 4-seat limit
+        if current_count + len(seats) > 4:
+            remaining = 4 - current_count
+            message = f"You can only reserve up to 4 seats total. You currently have {current_count} reservation(s) and can add {remaining} more."
+            return {'success': False, 'reserved': [], 'failed': seats, 'message': message}
+        
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
@@ -498,7 +510,69 @@ class DatabaseManager:
                     failed.append((seat_row, seat_number))
             conn.commit()
             conn.close()
-            return {'success': len(failed) == 0, 'reserved': reserved, 'failed': failed}
+            return {'success': len(failed) == 0, 'reserved': reserved, 'failed': failed, 'message': message}
         except Exception as e:
             print(f"Error reserving seats: {e}")
-            return {'success': False, 'reserved': reserved, 'failed': seats}
+            return {'success': False, 'reserved': reserved, 'failed': seats, 'message': str(e)}
+
+    def get_user_reservation_count(self, event_id, username):
+        """
+        Get the count of seats reserved by a user for a specific event.
+        
+        Args:
+            event_id (int): The event ID
+            username (str): The username to check
+            
+        Returns:
+            int: The number of seats reserved by the user
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM user_reservation
+                WHERE event_id = ? AND username = ?
+                """,
+                (event_id, username)
+            )
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except Exception as e:
+            print(f"Error getting user reservation count: {e}")
+            return 0
+    
+    def cancel_reservation(self, username, event_id, seat_row, seat_number):
+        """
+        Cancel a seat reservation for a user.
+        
+        Args:
+            username (str): The username canceling the reservation
+            event_id (int): The event ID
+            seat_row (str): The seat row
+            seat_number (int): The seat number
+            
+        Returns:
+            bool: True if the reservation was canceled successfully
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                DELETE FROM user_reservation
+                WHERE username = ? AND event_id = ? AND seat_row = ? AND seat_number = ?
+                """,
+                (username, event_id, seat_row, seat_number)
+            )
+            
+            success = cursor.rowcount > 0
+            conn.commit()
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"Error canceling reservation: {e}")
+            return False
