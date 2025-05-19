@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import datetime
+from stage_view import StageView
 
 class UserDashboardView:
     def __init__(self, root, db_manager, username, logout_callback=None):
@@ -28,6 +29,9 @@ class UserDashboardView:
         
         # Load events data
         self.load_events()
+        
+        # Store reference to stage view if opened
+        self.stage_view = None
     
     def setup_ui(self):
         """Set up the user interface elements."""
@@ -120,12 +124,23 @@ class UserDashboardView:
         # Get all future events
         future_events = self.db_manager.get_future_events()
         
-        # For now, we'll just display all events in the Available Events section
-        # In a real implementation, we would have a reservations table and filter accordingly
+        # For the "Available Events" section, show all future events
         self.display_available_events(future_events)
         
-        # For demonstration, we'll show a placeholder in the Reserved Events section
-        self.display_reserved_events([])
+        # Check which events the user has reservations for by looking at user_reservation table
+        # We'll identify events where the user has at least one seat reserved
+        reserved_events = []
+        event_ids_with_reservations = set()
+        
+        # Go through each future event and check if the user has any seats reserved
+        for event in future_events:
+            user_seats = self.db_manager.get_user_reserved_seats(event['id'], self.username)
+            if user_seats:  # If the user has any seats for this event
+                event_ids_with_reservations.add(event['id'])
+                reserved_events.append(event)
+        
+        # Display the events the user has reservations for
+        self.display_reserved_events(reserved_events)
     
     def display_reserved_events(self, reserved_events):
         """Display the user's reserved events.
@@ -247,18 +262,19 @@ class UserDashboardView:
         
         # Add appropriate button based on whether event is reserved
         if is_reserved:
-            cancel_button = tk.Button(
+            # For already reserved events, we'll have a View/Modify button instead
+            view_seats_button = tk.Button(
                 button_frame,
-                text="Cancel Reservation",
-                command=lambda e=event: self.cancel_reservation(e),
+                text="View/Modify Seats",
+                command=lambda e=event: self.open_stage_view(e),
                 width=20
             )
-            cancel_button.pack(side=tk.RIGHT)
+            view_seats_button.pack(side=tk.RIGHT)
         else:
             reserve_button = tk.Button(
                 button_frame,
                 text="Reserve Seats",
-                command=lambda e=event: self.reserve_seats(e),
+                command=lambda e=event: self.open_stage_view(e),
                 width=20
             )
             reserve_button.pack(side=tk.RIGHT)
@@ -272,21 +288,35 @@ class UserDashboardView:
         )
         details_button.pack(side=tk.RIGHT, padx=(0, 10))
     
-    def reserve_seats(self, event):
-        """Placeholder for seat reservation functionality.
+    def open_stage_view(self, event):
+        """Open the stage view for selecting seats.
         
         Args:
-            event: The event to reserve seats for
+            event: The event to select seats for
         """
-        messagebox.showinfo("Not Implemented", "The reservation functionality will be implemented later.")
-    
-    def cancel_reservation(self, event):
-        """Placeholder for cancellation functionality.
+        # Hide current frame
+        self.frame.pack_forget()
         
-        Args:
-            event: The event to cancel reservation for
-        """
-        messagebox.showinfo("Not Implemented", "The cancellation functionality will be implemented later.")
+        # Create new toplevel window
+        stage_view_window = tk.Toplevel(self.root)
+        stage_view_window.title(f"Select Seats - {event['name']}")
+        stage_view_window.state('zoomed')  # Maximize the window
+        
+        # Back callback to return to dashboard
+        def back_to_dashboard():
+            stage_view_window.destroy()
+            self.frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            # Refresh events to show any new reservations
+            self.load_events()
+        
+        # Create StageView instance
+        self.stage_view = StageView(
+            stage_view_window, 
+            self.db_manager,
+            event['id'],
+            self.username,
+            back_callback=back_to_dashboard
+        )
     
     def view_event_details(self, event):
         """Display detailed information about an event.
@@ -372,6 +402,16 @@ class UserDashboardView:
         desc_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         desc_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
+        # Reserve seats button
+        reserve_button = tk.Button(
+            content_frame,
+            text="Reserve Seats",
+            command=lambda e=event: [details_window.destroy(), self.open_stage_view(e)],
+            width=15,
+            font=("Arial", 10)
+        )
+        reserve_button.pack(side=tk.LEFT, pady=(15, 0))
+        
         # Close button
         close_button = tk.Button(
             content_frame,
@@ -380,4 +420,4 @@ class UserDashboardView:
             width=10,
             font=("Arial", 10)
         )
-        close_button.pack(pady=(15, 0))
+        close_button.pack(side=tk.RIGHT, pady=(15, 0))

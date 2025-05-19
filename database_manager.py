@@ -46,6 +46,20 @@ class DatabaseManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        # Create user_reservation if it doesn't exist
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_reservation (
+            reservation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            event_id INTEGER NOT NULL,
+            seat_row TEXT NOT NULL,
+            seat_number INTEGER NOT NULL,
+            reserved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'reserved',
+            UNIQUE(event_id, seat_row, seat_number)
+        )
+        ''')
         
         conn.commit()
         conn.close()
@@ -399,3 +413,92 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error deleting event: {e}")
             return False
+        
+    def get_reserved_seats(self, event_id, current_username):
+        """Return the list of reserved seats for a given event_id excluding the current user.
+        Sorted by seat_row and seat_number.
+        Args:
+            event_id: The event ID to filter reservations
+            current_username: The username to exclude from the results
+        Returns:
+            list of tuples: Each tuple contains (seat_row, seat_number)
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT seat_row, seat_number FROM user_reservation
+                WHERE event_id = ? AND username != ?
+                ORDER BY seat_row, seat_number
+                """,
+                (event_id, current_username)
+            )
+            results = cursor.fetchall()
+            conn.close()
+            return results
+        except Exception as e:
+            print(f"Error getting reserved seats: {e}")
+            return []
+
+    def get_user_reserved_seats(self, event_id, current_username):
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT seat_row, seat_number FROM user_reservation
+                WHERE event_id = ? AND username = ?
+                ORDER BY seat_row, seat_number
+                """,
+                (event_id, current_username)
+            )
+            results = cursor.fetchall()
+            conn.close()
+            return results
+        except Exception as e:
+            print(f"Error getting user reserved seats: {e}")
+            return []
+    
+    def reserve_seats(self, username, event_id, seats):
+        """
+        Reserve multiple seats for a user for a specific event.
+
+        Args:
+            username (str): The username reserving the seats.
+            event_id (int): The event ID.
+            seats (list of tuples): List of (seat_row, seat_number) tuples to reserve.
+
+        Returns:
+            dict: {
+                'success': bool,
+                'reserved': list of (seat_row, seat_number) reserved,
+                'failed': list of (seat_row, seat_number) not reserved (e.g., already taken)
+            }
+        """
+        reserved = []
+        failed = []
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            for seat_row, seat_number in seats:
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO user_reservation (username, event_id, seat_row, seat_number, status)
+                        VALUES (?, ?, ?, ?, 'reserved')
+                        """,
+                        (username, event_id, seat_row, seat_number)
+                    )
+                    reserved.append((seat_row, seat_number))
+                except sqlite3.IntegrityError:
+                    # Seat already reserved (UNIQUE constraint failed)
+                    failed.append((seat_row, seat_number))
+            conn.commit()
+            conn.close()
+            return {'success': len(failed) == 0, 'reserved': reserved, 'failed': failed}
+        except Exception as e:
+            print(f"Error reserving seats: {e}")
+            return {'success': False, 'reserved': reserved, 'failed': seats}
