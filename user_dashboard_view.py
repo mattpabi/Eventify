@@ -35,7 +35,7 @@ class UserDashboardView:
         title_frame = tk.Frame(self.frame)
         title_frame.pack(fill=tk.X, pady=(0, 20))
         
-        title_label = tk.Label(title_frame, text="StageSet Dashboard", font=("Arial", 20, "bold"))
+        title_label = tk.Label(title_frame, text="Eventify Dashboard", font=("Arial", 20, "bold"))
         title_label.pack(side=tk.LEFT)
         
         # Welcome message with username

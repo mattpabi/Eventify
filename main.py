@@ -11,7 +11,7 @@ class App:
     def __init__(self, root):
         """Initialise the main application."""
         self.root = root
-        self.root.title("StageSet")
+        self.root.title("Eventify")
         self.root.geometry("1366x720")
         self.root.resizable(True, True)
         
@@ -21,19 +21,19 @@ class App:
             print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 1", end="")
             self.db_manager = DatabaseManager()
             self.initialise_database()
-            print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
+            print(": Success\n\nEventify is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using Eventify.")
         except:
             try:
                 print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 3", end="")
                 self.db_manager = DatabaseManager()
                 self.initialise_database()
-                print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
+                print(": Success\n\nEventify is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using Eventify.")
             except:
                 try:
                     print(f"{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | Attempt 3", end="")
                     self.db_manager = DatabaseManager()
                     self.initialise_database()
-                    print(": Success\n\nStageSet is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using StageSet.")
+                    print(": Success\n\nEventify is now up and running. A new window for the graphical user interface has opened.\nOpen the window to login and start using Eventify.")
                 except Exception as e:
                     tk.messagebox.showerror("Database Error", f"Failed to initialise database: {e}")
                     root.destroy()
@@ -120,7 +120,7 @@ class App:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         # Add title
-        title_label = tk.Label(main_frame, text="StageSet", font=("Arial", 22, "bold"))
+        title_label = tk.Label(main_frame, text="Eventify", font=("Arial", 22, "bold"))
         title_label.pack(pady=(10, 30))
         
         # Add admin login button at top-right

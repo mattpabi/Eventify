@@ -6,7 +6,7 @@ import os
 import datetime
 
 class DatabaseManager:
-    def __init__(self, db_name="stageset_db.db"):
+    def __init__(self, db_name="eventify.db"):
         """Initialise the database manager with the given database name."""
 
         # Get the absolute path of the folder containing this script
