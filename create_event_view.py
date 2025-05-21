@@ -44,7 +44,7 @@ class CreateEventView:
         name_frame = tk.Frame(content_frame)
         name_frame.pack(fill=tk.X, pady=10)
         
-        name_label = tk.Label(name_frame, text="Event Name:", width=15, anchor="w", font=("Arial", 12))
+        name_label = tk.Label(name_frame, text="Event Name:", width=10, anchor="w", font=("Arial", 12))
         name_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.name_entry = tk.Entry(name_frame, font=("Arial", 12))
@@ -54,7 +54,7 @@ class CreateEventView:
         date_frame = tk.Frame(content_frame)
         date_frame.pack(fill=tk.X, pady=10)
         
-        date_label = tk.Label(date_frame, text="Date (YYYY-MM-DD):", width=15, anchor="w", font=("Arial", 12))
+        date_label = tk.Label(date_frame, text="Date (YYYY-MM-DD):", width=17, anchor="w", font=("Arial", 12))
         date_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.date_entry = tk.Entry(date_frame, font=("Arial", 12))
@@ -68,7 +68,7 @@ class CreateEventView:
         time_frame = tk.Frame(content_frame)
         time_frame.pack(fill=tk.X, pady=10)
         
-        time_label = tk.Label(time_frame, text="Time (HH:MM):", width=15, anchor="w", font=("Arial", 12))
+        time_label = tk.Label(time_frame, text="Time (HH:MM):", width=12, anchor="w", font=("Arial", 12))
         time_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.time_entry = tk.Entry(time_frame, font=("Arial", 12))
@@ -79,7 +79,7 @@ class CreateEventView:
         venue_frame = tk.Frame(content_frame)
         venue_frame.pack(fill=tk.X, pady=10)
         
-        venue_label = tk.Label(venue_frame, text="Venue:", width=15, anchor="w", font=("Arial", 12))
+        venue_label = tk.Label(venue_frame, text="Venue:", width=6, anchor="w", font=("Arial", 12))
         venue_label.pack(side=tk.LEFT, padx=(0, 10))
         
         venue_info = tk.Label(venue_frame, text="Castle Hill High School auditorium (550 seats)", font=("Arial", 12), anchor="w")
@@ -89,7 +89,7 @@ class CreateEventView:
         price_frame = tk.Frame(content_frame)
         price_frame.pack(fill=tk.X, pady=10)
         
-        price_label = tk.Label(price_frame, text="Price ($):", width=15, anchor="w", font=("Arial", 12))
+        price_label = tk.Label(price_frame, text="Price ($):", width=7, anchor="w", font=("Arial", 12))
         price_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.price_entry = tk.Entry(price_frame, font=("Arial", 12))
