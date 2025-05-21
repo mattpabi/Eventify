@@ -64,16 +64,27 @@ class CreateEventView:
         tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         self.date_entry.insert(0, tomorrow)
         
-        # Time
+        # Start Time
         time_frame = tk.Frame(content_frame)
         time_frame.pack(fill=tk.X, pady=10)
         
-        time_label = tk.Label(time_frame, text="Time (HH:MM):", width=12, anchor="w", font=("Arial", 12))
+        time_label = tk.Label(time_frame, text="Start Time (HH:MM):", width=16, anchor="w", font=("Arial", 12))
         time_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.time_entry = tk.Entry(time_frame, font=("Arial", 12))
         self.time_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.time_entry.insert(0, "19:00")  # Default time
+
+        # End Time
+        end_time_frame = tk.Frame(content_frame)
+        end_time_frame.pack(fill=tk.X, pady=10)
+        
+        end_time_label = tk.Label(end_time_frame, text="End Time (HH:MM):", width=16, anchor="w", font=("Arial", 12))
+        end_time_label.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.end_time_entry = tk.Entry(end_time_frame, font=("Arial", 12))
+        self.end_time_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.end_time_entry.insert(0, "21:00")  # Default end time
         
         # Venue information (read-only display)
         venue_frame = tk.Frame(content_frame)
@@ -108,7 +119,7 @@ class CreateEventView:
         text_scroll_frame.pack(fill=tk.X, expand=True, pady=(5, 0))
 
         # Text widget with fixed height and width (width optional)
-        self.description_text = tk.Text(text_scroll_frame, height=12, font=("Arial", 12), wrap="word")
+        self.description_text = tk.Text(text_scroll_frame, height=8, font=("Arial", 12), wrap="word")
         self.description_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Scrollbar packed to the right of the Text widget, inside the same frame
@@ -148,11 +159,12 @@ class CreateEventView:
         name = self.name_entry.get().strip()
         date = self.date_entry.get().strip()
         time = self.time_entry.get().strip()
+        end_time = self.end_time_entry.get().strip()
         price = self.price_entry.get().strip()
         
         # Check required fields
-        if not name or not date or not time:
-            messagebox.showerror("Error", "Name, date, and time are required fields")
+        if not name or not date or not time or not end_time:
+            messagebox.showerror("Error", "Name, date, start time, and end time are required fields")
             return False
         
         # Validate date format (YYYY-MM-DD)
@@ -164,7 +176,27 @@ class CreateEventView:
         # Validate time format (HH:MM)
         time_pattern = re.compile(r'^([01]\d|2[0-3]):([0-5]\d)$')
         if not time_pattern.match(time):
-            messagebox.showerror("Error", "Time must be in HH:MM format (24-hour)")
+            messagebox.showerror("Error", "Start time must be in HH:MM format (24-hour)")
+            return False
+            
+        # Validate end time format (HH:MM)
+        if not time_pattern.match(end_time):
+            messagebox.showerror("Error", "End time must be in HH:MM format (24-hour)")
+            return False
+        
+        # Validate that end time is after start time
+        try:
+            start_hour, start_minute = map(int, time.split(':'))
+            end_hour, end_minute = map(int, end_time.split(':'))
+            
+            start_minutes_total = start_hour * 60 + start_minute
+            end_minutes_total = end_hour * 60 + end_minute
+            
+            if end_minutes_total <= start_minutes_total:
+                messagebox.showerror("Error", "End time must be after start time")
+                return False
+        except ValueError:
+            messagebox.showerror("Error", "Invalid time format")
             return False
         
         # Validate price as float
@@ -208,6 +240,7 @@ class CreateEventView:
         name = self.name_entry.get().strip()
         date = self.date_entry.get().strip()
         time = self.time_entry.get().strip()
+        end_time = self.end_time_entry.get().strip()
         price = float(self.price_entry.get().strip())
         description = self.description_text.get("1.0", tk.END).strip()
         
@@ -217,6 +250,7 @@ class CreateEventView:
             description=description,
             date=date,
             time=time,
+            end_time=end_time,
             price=price
         )
         
@@ -240,6 +274,10 @@ class CreateEventView:
         # Reset time to default
         self.time_entry.delete(0, tk.END)
         self.time_entry.insert(0, "19:00")
+        
+        # Reset end time to default
+        self.end_time_entry.delete(0, tk.END)
+        self.end_time_entry.insert(0, "21:00")
         
         # Reset price to default
         self.price_entry.delete(0, tk.END)

@@ -40,6 +40,7 @@ class DatabaseManager:
                 description TEXT,
                 date TEXT NOT NULL,
                 time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
                 venue TEXT NOT NULL,
                 capacity INTEGER DEFAULT 550,
                 price REAL DEFAULT 0.0,
@@ -225,7 +226,7 @@ class DatabaseManager:
     
     # Event management methods
     
-    def create_event(self, name, description, date, time, venue="Castle Hill High School auditorium", capacity=550, price=0.0):
+    def create_event(self, name, description, date, time, end_time, venue="Castle Hill High School auditorium", capacity=550, price=0.0):
         """Create a new event in the database.
         
         Args:
@@ -233,6 +234,7 @@ class DatabaseManager:
             description: The description of the event
             date: The date of the event (YYYY-MM-DD)
             time: The time of the event (HH:MM)
+            end_time: The end time of the event (HH:MM)
             venue: The venue of the event (defaults to Castle Hill High School auditorium")
             capacity: The maximum capacity of the event (fixed at 550)
             price: The ticket price for the event
@@ -246,9 +248,9 @@ class DatabaseManager:
             
             cursor.execute(
                 """INSERT INTO events 
-                   (name, description, date, time, venue, capacity, price) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (name, description, date, time, venue, capacity, price)
+                (name, description, date, time, end_time, venue, capacity, price) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (name, description, date, time, end_time, venue, capacity, price)
             )
             
             # Get the ID of the newly inserted event
@@ -341,8 +343,8 @@ class DatabaseManager:
             print(f"Error getting event by ID: {e}")
             return None
     
-    def update_event(self, event_id, name=None, description=None, date=None, time=None, 
-                    venue="Castle Hill High School auditorium", capacity=550, price=None):
+    def update_event(self, event_id, name=None, description=None, date=None, time=None, end_time=None,
+                venue="Castle Hill High School auditorium", capacity=550, price=None):
         """Update an event in the database.
         
         Args:
@@ -351,6 +353,7 @@ class DatabaseManager:
             description: The new description of the event (optional)
             date: The new date of the event (optional)
             time: The new time of the event (optional)
+            end_time: The new end time of the event (optional)
             venue: The venue of the event (fixed as Castle Hill High School auditorium")
             capacity: The capacity of the event (fixed at 550)
             price: The new price of the event (optional)
@@ -369,6 +372,7 @@ class DatabaseManager:
             description = description if description is not None else current_event['description']
             date = date if date is not None else current_event['date']
             time = time if time is not None else current_event['time']
+            end_time = end_time if end_time is not None else current_event['end_time']
             price = price if price is not None else current_event['price']
             
             conn = self._get_connection()
@@ -376,10 +380,10 @@ class DatabaseManager:
             
             cursor.execute(
                 """UPDATE events 
-                   SET name = ?, description = ?, date = ?, time = ?, 
-                       venue = ?, capacity = ?, price = ?
-                   WHERE id = ?""",
-                (name, description, date, time, venue, capacity, price, event_id)
+                SET name = ?, description = ?, date = ?, time = ?, end_time = ?,
+                    venue = ?, capacity = ?, price = ?
+                WHERE id = ?""",
+                (name, description, date, time, end_time, venue, capacity, price, event_id)
             )
             
             conn.commit()

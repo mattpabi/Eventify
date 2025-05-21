@@ -72,7 +72,8 @@ class App:
                 "name": "The SpongeBob Musical",
                 "description": "The stakes are higher than ever in this dynamic stage musical, as SpongeBob and all of Bikini Bottom face the total annihilation of their undersea world. Chaos erupts. Lives hang in the balance. And just when all hope seems lost, a most unexpected hero rises up and takes center stage. The power of optimism really can save the world!",
                 "date": tomorrow,
-                "time": "18:00",
+                "time": "10:00",
+                "end_time": "12:00",
                 "venue": "Castle Hill High School auditorium",
                 "capacity": 550,
                 "price": 10.00
@@ -82,6 +83,7 @@ class App:
                 "description": "An evening of stand-up comedy featuring both established and up-and-coming comedians.",
                 "date": two_weeks,
                 "time": "20:00",
+                "end_time": "21:45",
                 "venue": "Castle Hill High School auditorium",
                 "capacity": 550,
                 "price": 5.00
@@ -91,6 +93,7 @@ class App:
                 "description": "Explore the latest innovations in technology with industry experts and thought leaders.",
                 "date": one_month,
                 "time": "09:00",
+                "end_time": "17:00",
                 "venue": "Castle Hill High School auditorium",
                 "capacity": 550,
                 "price": 25.00
@@ -104,6 +107,7 @@ class App:
                 description=event["description"],
                 date=event["date"],
                 time=event["time"],
+                end_time=event["end_time"],  # Added end_time parameter
                 venue=event["venue"],
                 capacity=event["capacity"],
                 price=event["price"]
