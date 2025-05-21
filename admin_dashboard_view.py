@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from edit_event_view import EditEventView
 from create_event_view import CreateEventView
+from admin_stage_view import AdminStageView
 
 class AdminDashboardView:
     def __init__(self, root, db_manager, back_callback=None):
@@ -61,7 +62,7 @@ class AdminDashboardView:
         self.event_tree.heading("date", text="Date")
         self.event_tree.heading("time", text="Time")
         self.event_tree.heading("venue", text="Venue")
-        self.event_tree.heading("capacity", text="Capacity")
+        self.event_tree.heading("capacity", text="Reserved / Capacity")
         self.event_tree.heading("price", text="Price ($)")
         
         # Set column widths
@@ -70,7 +71,7 @@ class AdminDashboardView:
         self.event_tree.column("date", width=100, anchor="center")
         self.event_tree.column("time", width=100, anchor="center")
         self.event_tree.column("venue", width=200)
-        self.event_tree.column("capacity", width=100, anchor="center")
+        self.event_tree.column("capacity", width=120, anchor="center")
         self.event_tree.column("price", width=100, anchor="center")
         
         # Add a scrollbar
@@ -118,10 +119,41 @@ class AdminDashboardView:
             width=20,
             height=2
         )
-        view_button.pack(side=tk.LEFT)
+        view_button.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Add new button for viewing stage layout
+        view_stage_button = tk.Button(
+            button_frame, 
+            text="View Seating Layout", 
+            command=self.view_stage_layout,
+            font=("Arial", 11),
+            width=20,
+            height=2
+        )
+        view_stage_button.pack(side=tk.LEFT)
         
         # Add double-click event to view details
-        self.event_tree.bind("<Double-1>", lambda event: self.view_event_details())
+        self.event_tree.bind("<Double-1>", lambda event: self.view_stage_layout())
+    
+    def get_reservation_count(self, event_id):
+        """Get the number of reserved seats for a specific event."""
+        try:
+            conn = self.db_manager._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM user_reservation
+                WHERE event_id = ?
+                """,
+                (event_id,)
+            )
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except Exception as e:
+            print(f"Error getting reservation count: {e}")
+            return 0
     
     def populate_event_list(self):
         """Populate the event list with upcoming events from the database."""
@@ -139,8 +171,14 @@ class AdminDashboardView:
             
         # Add each event to the treeview
         for event in future_events:
+            # Get reservation count for this event
+            reserved_count = self.get_reservation_count(event['id'])
+            
             # Format price with 2 decimal places
             price_formatted = f"${event['price']:.2f}"
+            
+            # Format capacity with reserved count
+            capacity_formatted = f"{reserved_count} / {event['capacity']}"
             
             self.event_tree.insert("", tk.END, values=(
                 event['id'],
@@ -148,7 +186,7 @@ class AdminDashboardView:
                 event['date'],
                 event['time'],
                 event['venue'],
-                event['capacity'],
+                capacity_formatted,
                 price_formatted
             ))
     
@@ -235,3 +273,14 @@ class AdminDashboardView:
                 
                 # Show the details in a message box
                 messagebox.showinfo("Event Details", details)
+    
+    def view_stage_layout(self):
+        """View the stage layout for the selected event."""
+        event_id = self.get_selected_event_id()
+        if event_id:
+            # Clear the current frame
+            for widget in self.root.winfo_children():
+                widget.destroy()
+                
+            # Show the admin stage view
+            AdminStageView(self.root, self.db_manager, event_id, self.refresh_dashboard)
