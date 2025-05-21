@@ -137,10 +137,37 @@ class UserDashboardView:
             user_seats = self.db_manager.get_user_reserved_seats(event['id'], self.username)
             if user_seats:  # If the user has any seats for this event
                 event_ids_with_reservations.add(event['id'])
-                reserved_events.append(event)
+                # Add the number of seats reserved to the event data
+                event_with_seats = event.copy()  # Create a copy to avoid modifying the original
+                event_with_seats['reserved_seats'] = user_seats
+                reserved_events.append(event_with_seats)
         
         # Display the events the user has reservations for
         self.display_reserved_events(reserved_events)
+    
+    def get_available_seats_count(self, event_id):
+        """Calculate the number of available seats for an event.
+        
+        Args:
+            event_id: The ID of the event
+            
+        Returns:
+            int: Number of available seats
+        """
+        # Get the event to find the total capacity
+        event = self.db_manager.get_event_by_id(event_id)
+        if not event:
+            return 0
+            
+        total_capacity = event['capacity']
+        
+        # Get all reservations for this event (excluding the current user)
+        # We include the current user's reservations too since we want the total available seats
+        all_reserved_seats = self.db_manager.get_reserved_seats(event_id, "")  # Empty string to include all users
+        
+        # Calculate available seats
+        available_seats = total_capacity - len(all_reserved_seats)
+        return available_seats
     
     def display_reserved_events(self, reserved_events):
         """Display the user's reserved events.
@@ -194,7 +221,11 @@ class UserDashboardView:
         
         # Display each available event
         for event in available_events:
-            self.create_event_card(self.available_scrollable_frame, event, is_reserved=False)
+            # Add available seats count to event data
+            available_seats = self.get_available_seats_count(event['id'])
+            event_with_seats = event.copy()
+            event_with_seats['available_seats'] = available_seats
+            self.create_event_card(self.available_scrollable_frame, event_with_seats, is_reserved=False)
     
     def create_event_card(self, parent_frame, event, is_reserved=False):
         """Create a card displaying event information.
@@ -250,11 +281,46 @@ class UserDashboardView:
         # Price
         price_label = tk.Label(
             details_frame,
-            text=f"Price: ${event['price']:.2f}",
+            text=f"Price per ticket: ${event['price']:.2f}",
             font=("Arial", 10),
             anchor="w"
         )
         price_label.pack(fill=tk.X)
+        
+        # Display available seats for available events
+        if not is_reserved and 'available_seats' in event:
+            available_seats_label = tk.Label(
+                details_frame,
+                text=f"Available Seats: {event['available_seats']} of {event['capacity']}",
+                font=("Arial", 10, "bold"),
+                anchor="w",
+                fg="green" if event['available_seats'] > 0 else "red"
+            )
+            available_seats_label.pack(fill=tk.X)
+        
+        # Display reserved seats and total payable for reserved events
+        if is_reserved and 'reserved_seats' in event:
+            reserved_count = len(event['reserved_seats'])
+            total_payable = reserved_count * event['price']
+            
+            # Reserved seats count
+            reserved_seats_label = tk.Label(
+                details_frame,
+                text=f"Your Reserved Seats: {reserved_count}",
+                font=("Arial", 10, "bold"),
+                anchor="w"
+            )
+            reserved_seats_label.pack(fill=tk.X)
+            
+            # Total payable
+            total_payable_label = tk.Label(
+                details_frame,
+                text=f"Total Amount Payable: ${total_payable:.2f}",
+                font=("Arial", 10, "bold"),
+                anchor="w",
+                fg="blue"
+            )
+            total_payable_label.pack(fill=tk.X)
         
         # Button frame
         button_frame = tk.Frame(event_frame)
@@ -373,11 +439,22 @@ class UserDashboardView:
         # Capacity and Price
         capacity_price_label = tk.Label(
             content_frame,
-            text=f"Capacity: {event['capacity']} seats | Price: ${event['price']:.2f}",
+            text=f"Capacity: {event['capacity']} seats | Price per ticket: ${event['price']:.2f}",
             font=("Arial", 12),
             anchor="w"
         )
         capacity_price_label.pack(fill=tk.X, pady=5)
+        
+        # Available seats (if present in the event data)
+        if 'available_seats' in event:
+            available_seats_label = tk.Label(
+                content_frame,
+                text=f"Available Seats: {event['available_seats']} of {event['capacity']}",
+                font=("Arial", 12, "bold"),
+                anchor="w",
+                fg="green" if event['available_seats'] > 0 else "red"
+            )
+            available_seats_label.pack(fill=tk.X, pady=5)
         
         # Description (in a scrollable text area)
         desc_label = tk.Label(
