@@ -185,6 +185,26 @@ class EditEventView:
             messagebox.showerror("Error", "Price must be a number")
             return False
         
+        # Validate that the date is not in the past
+        try:
+            event_date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+            today = datetime.datetime.now().date()
+            
+            if event_date < today:
+                messagebox.showerror("Error", "Event date cannot be in the past")
+                return False
+        except ValueError:
+            messagebox.showerror("Error", "Invalid date")
+            return False
+        
+        # Check if date already has an event scheduled (exclude the current event being edited)
+        if self.db_manager.date_has_event(date, exclude_event_id=self.event_id):
+            messagebox.showerror(
+                "Date Conflict", 
+                f"An event is already scheduled on {date}.\nThe venue can only host one event per day."
+            )
+            return False
+        
         return True
     
     def save_changes(self):
