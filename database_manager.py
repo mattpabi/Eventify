@@ -576,3 +576,44 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error canceling reservation: {e}")
             return False
+        
+    def date_has_event(self, date, exclude_event_id=None):
+        """
+        Check if a date already has an event scheduled.
+        
+        Args:
+            date (str): The date to check in YYYY-MM-DD format
+            exclude_event_id (int, optional): Event ID to exclude from the check
+                (useful when updating an event)
+                
+        Returns:
+            bool: True if the date already has an event, False otherwise
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            if exclude_event_id is not None:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM events
+                    WHERE date = ? AND id != ?
+                    """,
+                    (date, exclude_event_id)
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM events
+                    WHERE date = ?
+                    """,
+                    (date,)
+                )
+            
+            count = cursor.fetchone()[0]
+            conn.close()
+            
+            return count > 0
+        except Exception as e:
+            print(f"Error checking if date has event: {e}")
+            return False

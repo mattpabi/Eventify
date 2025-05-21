@@ -189,6 +189,14 @@ class CreateEventView:
             messagebox.showerror("Error", "Invalid date")
             return False
         
+        # Check if date already has an event scheduled
+        if self.db_manager.date_has_event(date):
+            messagebox.showerror(
+                "Date Conflict", 
+                f"An event is already scheduled on {date}.\nThe venue can only host one event per day."
+            )
+            return False
+        
         return True
     
     def create_event(self):
