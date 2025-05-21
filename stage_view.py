@@ -1,3 +1,5 @@
+# stage_view.py - layout of the stage for customers to reserve seats
+
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import os
@@ -362,8 +364,7 @@ class StageView:
         # Check if adding this seat would exceed the 4-seat limit
         if not selected and self.user_reservation_count + len(self.selected_seats) >= 4:
             messagebox.showwarning("Reservation Limit", 
-                                  f"You can only reserve a maximum of 4 seats per event. You currently have "
-                                  f"{self.user_reservation_count} reserved seats.")
+                                  f"You can only reserve a maximum of 4 seats per event.")
             return
         
         if selected:
