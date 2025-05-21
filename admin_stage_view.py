@@ -338,7 +338,7 @@ class AdminStageView:
 
     def view_user_details(self, username):
         """View details about a user (placeholder function)."""
-        messagebox.showinfo("User Details", f"Username: {username}\n\nNote: In a real system, you would show additional user details here.")
+        messagebox.showinfo("User Details", f"Username: {username}")
 
     def cancel_reservation(self, seat_id):
         """Cancel a reservation as administrator."""
