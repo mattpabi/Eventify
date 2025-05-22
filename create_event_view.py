@@ -42,13 +42,26 @@ class CreateEventView:
         
         # Event Name
         name_frame = tk.Frame(content_frame)
-        name_frame.pack(fill=tk.X, pady=10)
+        name_frame.pack(fill=tk.X, pady=(5, 10))
         
-        name_label = tk.Label(name_frame, text="Event Name:", width=10, anchor="w", font=("Arial", 12))
-        name_label.pack(side=tk.LEFT, padx=(0, 10))
+        # Name label and character count on same line
+        name_header_frame = tk.Frame(name_frame)
+        name_header_frame.pack(fill=tk.X)
         
+        name_label = tk.Label(name_header_frame, text="Event Name:", anchor="w", font=("Arial", 12))
+        name_label.pack(side=tk.LEFT)
+        
+        # Character count label
+        self.name_char_count = tk.Label(name_header_frame, text="0/40 characters", font=("Arial", 9), fg="gray")
+        self.name_char_count.pack(side=tk.RIGHT)
+        
+        # Entry field
         self.name_entry = tk.Entry(name_frame, font=("Arial", 12))
-        self.name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.name_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # Bind event to update character count and limit input
+        self.name_entry.bind('<KeyRelease>', self.update_name_char_count)
+        self.name_entry.bind('<KeyPress>', self.limit_name_input)
         
         # Date
         date_frame = tk.Frame(content_frame)
@@ -111,8 +124,16 @@ class CreateEventView:
         description_frame = tk.Frame(content_frame)
         description_frame.pack(fill=tk.X, pady=10)
 
-        description_label = tk.Label(description_frame, text="Description:", font=("Arial", 12))
-        description_label.pack(anchor="w")
+        # Description label and character count on same line
+        description_header_frame = tk.Frame(description_frame)
+        description_header_frame.pack(fill=tk.X)
+
+        description_label = tk.Label(description_header_frame, text="Description:", font=("Arial", 12))
+        description_label.pack(side=tk.LEFT)
+
+        # Description character count label
+        self.description_char_count = tk.Label(description_header_frame, text="0/1000 characters", font=("Arial", 9), fg="gray")
+        self.description_char_count.pack(side=tk.RIGHT)
 
         # Create a frame to hold both Text and Scrollbar side by side
         text_scroll_frame = tk.Frame(description_frame)
@@ -128,6 +149,10 @@ class CreateEventView:
 
         # Connect scrollbar and text widget
         self.description_text.config(yscrollcommand=scrollbar.set)
+
+        # Bind events for description character count and limiting
+        self.description_text.bind('<KeyRelease>', self.update_description_char_count)
+        self.description_text.bind('<KeyPress>', self.limit_description_input)
 
         # Button frame
         button_frame = tk.Frame(content_frame)
@@ -154,6 +179,58 @@ class CreateEventView:
         )
         clear_button.pack(side=tk.LEFT)
     
+    def update_name_char_count(self, event=None):
+        """Update the character count display for the event name."""
+        current_length = len(self.name_entry.get())
+        self.name_char_count.config(text=f"{current_length}/40 characters")
+        
+        # Change color based on character count
+        if current_length > 35:
+            self.name_char_count.config(fg="red")
+        elif current_length > 30:
+            self.name_char_count.config(fg="orange")
+        else:
+            self.name_char_count.config(fg="gray")
+    
+    def limit_name_input(self, event):
+        """Prevent input beyond 40 characters for event name."""
+        # Allow special keys (backspace, delete, arrow keys, etc.)
+        if event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Home', 'End', 'Tab']:
+            return
+        
+        # Check if we're at the character limit
+        current_text = self.name_entry.get()
+        if len(current_text) >= 40:
+            return "break"  # Prevent the keystroke
+    
+    def update_description_char_count(self, event=None):
+        """Update the character count display for the description."""
+        current_text = self.description_text.get("1.0", tk.END)
+        # Subtract 1 to account for the automatic newline that tkinter adds
+        current_length = len(current_text) - 1 if current_text.endswith('\n') else len(current_text)
+        self.description_char_count.config(text=f"{current_length}/1000 characters")
+        
+        # Change color based on character count
+        if current_length > 950:
+            self.description_char_count.config(fg="red")
+        elif current_length > 800:
+            self.description_char_count.config(fg="orange")
+        else:
+            self.description_char_count.config(fg="gray")
+    
+    def limit_description_input(self, event):
+        """Prevent input beyond 1000 characters for description."""
+        # Allow special keys (backspace, delete, arrow keys, etc.)
+        if event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Up', 'Down', 'Home', 'End', 'Tab']:
+            return
+        
+        # Check if we're at the character limit
+        current_text = self.description_text.get("1.0", tk.END)
+        current_length = len(current_text) - 1 if current_text.endswith('\n') else len(current_text)
+        
+        if current_length >= 1000:
+            return "break"  # Prevent the keystroke
+    
     def validate_inputs(self):
         """Validate all inputs before creating the event."""
         name = self.name_entry.get().strip()
@@ -165,6 +242,17 @@ class CreateEventView:
         # Check required fields
         if not name or not date or not time or not end_time:
             messagebox.showerror("Error", "Name, date, start time, and end time are required fields")
+            return False
+        
+        # Validate event name length
+        if len(name) > 40:
+            messagebox.showerror("Error", "Event name must be 40 characters or less")
+            return False
+        
+        # Validate description length
+        description = self.description_text.get("1.0", tk.END).strip()
+        if len(description) > 1000:
+            messagebox.showerror("Error", "Description must be 1000 characters or less")
             return False
         
         # Validate date format (YYYY-MM-DD)
@@ -285,3 +373,7 @@ class CreateEventView:
         
         # Clear description
         self.description_text.delete("1.0", tk.END)
+        
+        # Update character counts
+        self.update_name_char_count()
+        self.update_description_char_count()
