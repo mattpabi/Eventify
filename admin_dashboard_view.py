@@ -52,25 +52,27 @@ class AdminDashboardView:
         list_frame = tk.Frame(self.dashboard_frame)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 10))
         
-        # Create Treeview widget for events
-        columns = ("id", "name", "date", "time", "venue", "capacity", "price")
+        # Create Treeview widget for events - added end_time column
+        columns = ("id", "name", "date", "time", "end_time", "venue", "capacity", "price")
         self.event_tree = ttk.Treeview(list_frame, columns=columns, show="headings")
         
-        # Define column headings
+        # Define column headings - added End Time
         self.event_tree.heading("id", text="ID")
         self.event_tree.heading("name", text="Event Name")
         self.event_tree.heading("date", text="Date")
-        self.event_tree.heading("time", text="Time")
+        self.event_tree.heading("time", text="Start Time")
+        self.event_tree.heading("end_time", text="End Time")
         self.event_tree.heading("venue", text="Venue")
         self.event_tree.heading("capacity", text="Reserved / Capacity")
         self.event_tree.heading("price", text="Price ($)")
         
-        # Set column widths
+        # Set column widths - adjusted to accommodate end_time
         self.event_tree.column("id", width=50, anchor="center")
-        self.event_tree.column("name", width=250)
+        self.event_tree.column("name", width=200)  # Reduced slightly
         self.event_tree.column("date", width=100, anchor="center")
-        self.event_tree.column("time", width=100, anchor="center")
-        self.event_tree.column("venue", width=200)
+        self.event_tree.column("time", width=90, anchor="center")  # Reduced slightly
+        self.event_tree.column("end_time", width=90, anchor="center")  # New column
+        self.event_tree.column("venue", width=180)  # Reduced slightly
         self.event_tree.column("capacity", width=120, anchor="center")
         self.event_tree.column("price", width=100, anchor="center")
         
@@ -165,8 +167,8 @@ class AdminDashboardView:
         future_events = self.db_manager.get_future_events()
         
         if not future_events:
-            # Add a placeholder item if no events exist
-            self.event_tree.insert("", tk.END, values=("N/A", "No upcoming events", "N/A", "N/A", "N/A", "N/A", "N/A"))
+            # Add a placeholder item if no events exist - updated for new column structure
+            self.event_tree.insert("", tk.END, values=("N/A", "No upcoming events", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"))
             return
             
         # Add each event to the treeview
@@ -180,11 +182,13 @@ class AdminDashboardView:
             # Format capacity with reserved count
             capacity_formatted = f"{reserved_count} / {event['capacity']}"
             
+            # Insert event with end_time included
             self.event_tree.insert("", tk.END, values=(
                 event['id'],
                 event['name'],
                 event['date'],
                 event['time'],
+                event['end_time'],  # Added end_time here
                 event['venue'],
                 capacity_formatted,
                 price_formatted
@@ -260,12 +264,13 @@ class AdminDashboardView:
             event = self.db_manager.get_event_by_id(event_id)
             
             if event:
-                # Format the details message
+                # Format the details message - updated to include end_time
                 details = f"Event Details:\n\n"
                 details += f"ID: {event['id']}\n"
                 details += f"Name: {event['name']}\n"
                 details += f"Date: {event['date']}\n"
-                details += f"Time: {event['time']}\n"
+                details += f"Start Time: {event['time']}\n"
+                details += f"End Time: {event['end_time']}\n"  # Added end time
                 details += f"Venue: {event['venue']}\n"
                 details += f"Capacity: {event['capacity']}\n"
                 details += f"Price: ${event['price']:.2f}\n\n"

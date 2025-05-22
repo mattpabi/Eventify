@@ -260,10 +260,10 @@ class UserDashboardView:
         except ValueError:
             formatted_date = event['date']
         
-        # Date and time
+        # Date and time (now including end time)
         date_time_label = tk.Label(
             details_frame,
-            text=f"Date: {formatted_date} at {event['time']}",
+            text=f"Date: {formatted_date} from {event['time']} to {event['end_time']}",
             font=("Arial", 10),
             anchor="w"
         )
@@ -412,7 +412,7 @@ class UserDashboardView:
         )
         title_label.pack(fill=tk.X, pady=(0, 10))
         
-        # Event date and time
+        # Event date and time (now including end time)
         try:
             date_obj = datetime.datetime.strptime(event['date'], "%Y-%m-%d")
             formatted_date = date_obj.strftime("%A, %d %B %Y")
@@ -421,7 +421,7 @@ class UserDashboardView:
             
         date_time_label = tk.Label(
             content_frame,
-            text=f"Date and Time: {formatted_date} at {event['time']}",
+            text=f"Date and Time: {formatted_date} from {event['time']} to {event['end_time']}",
             font=("Arial", 12),
             anchor="w"
         )

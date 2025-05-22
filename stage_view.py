@@ -104,7 +104,7 @@ class StageView:
 
         # Display event info
         if hasattr(self, 'event') and self.event:
-            event_info = f"{self.event['name']} - {self.event['date']} {self.event['time']}"
+            event_info = f"{self.event['name']} - {self.event['date']} from {self.event['time']} to {self.event['end_time']}"
             event_label = tk.Label(header_frame, text=event_info, font=("Arial", 12, "bold"))
             event_label.grid(row=0, column=1, pady=10, sticky='ew')
 
