@@ -195,6 +195,15 @@ class RegisterView:
             messagebox.showerror("Error", "All fields are required")
             return
         
+        # Validate minimum character requirements
+        if len(username) < 4:
+            messagebox.showerror("Error", "Username must be at least 4 characters long")
+            return
+
+        if len(password) < 8:
+            messagebox.showerror("Error", "Password must be at least 8 characters long")
+            return
+
         # Validate character limits
         if len(username) > 20:
             messagebox.showerror("Error", "Username must be 20 characters or less")
