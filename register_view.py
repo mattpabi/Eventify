@@ -29,33 +29,72 @@ class RegisterView:
         
         # Username
         username_frame = tk.Frame(content_frame)
-        username_frame.pack(fill=tk.X, pady=10)
+        username_frame.pack(fill=tk.X, pady=(5, 10))
         
-        username_label = tk.Label(username_frame, text="Username:", width=12, anchor="w", font=("Arial", 12))
-        username_label.pack(side=tk.LEFT, padx=(0, 10))
+        # Username label and character count on same line
+        username_header_frame = tk.Frame(username_frame)
+        username_header_frame.pack(fill=tk.X)
         
+        username_label = tk.Label(username_header_frame, text="Username:", anchor="w", font=("Arial", 12))
+        username_label.pack(side=tk.LEFT)
+        
+        # Username character count label
+        self.username_char_count = tk.Label(username_header_frame, text="0/20 characters", font=("Arial", 9), fg="gray")
+        self.username_char_count.pack(side=tk.RIGHT)
+        
+        # Username entry field
         self.username_entry = tk.Entry(username_frame, font=("Arial", 12))
-        self.username_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.username_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # Bind events to update character count and limit input
+        self.username_entry.bind('<KeyRelease>', self.update_username_char_count)
+        self.username_entry.bind('<KeyPress>', self.limit_username_input)
         
         # Password
         password_frame = tk.Frame(content_frame)
-        password_frame.pack(fill=tk.X, pady=10)
+        password_frame.pack(fill=tk.X, pady=(5, 10))
         
-        password_label = tk.Label(password_frame, text="Password:", width=12, anchor="w", font=("Arial", 12))
-        password_label.pack(side=tk.LEFT, padx=(0, 10))
+        # Password label and character count on same line
+        password_header_frame = tk.Frame(password_frame)
+        password_header_frame.pack(fill=tk.X)
         
+        password_label = tk.Label(password_header_frame, text="Password:", anchor="w", font=("Arial", 12))
+        password_label.pack(side=tk.LEFT)
+        
+        # Password character count label
+        self.password_char_count = tk.Label(password_header_frame, text="0/30 characters", font=("Arial", 9), fg="gray")
+        self.password_char_count.pack(side=tk.RIGHT)
+        
+        # Password entry field
         self.password_entry = tk.Entry(password_frame, show="*", font=("Arial", 12))
-        self.password_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.password_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # Bind events to update character count and limit input
+        self.password_entry.bind('<KeyRelease>', self.update_password_char_count)
+        self.password_entry.bind('<KeyPress>', self.limit_password_input)
         
         # Confirm Password
         confirm_frame = tk.Frame(content_frame)
-        confirm_frame.pack(fill=tk.X, pady=10)
+        confirm_frame.pack(fill=tk.X, pady=(5, 10))
         
-        confirm_label = tk.Label(confirm_frame, text="Confirm Pass:", width=12, anchor="w", font=("Arial", 12))
-        confirm_label.pack(side=tk.LEFT, padx=(0, 10))
+        # Confirm password label and character count on same line
+        confirm_header_frame = tk.Frame(confirm_frame)
+        confirm_header_frame.pack(fill=tk.X)
         
+        confirm_label = tk.Label(confirm_header_frame, text="Confirm Pass:", anchor="w", font=("Arial", 12))
+        confirm_label.pack(side=tk.LEFT)
+        
+        # Confirm password character count label
+        self.confirm_char_count = tk.Label(confirm_header_frame, text="0/30 characters", font=("Arial", 9), fg="gray")
+        self.confirm_char_count.pack(side=tk.RIGHT)
+        
+        # Confirm password entry field
         self.confirm_entry = tk.Entry(confirm_frame, show="*", font=("Arial", 12))
-        self.confirm_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.confirm_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # Bind events to update character count and limit input
+        self.confirm_entry.bind('<KeyRelease>', self.update_confirm_char_count)
+        self.confirm_entry.bind('<KeyPress>', self.limit_confirm_input)
         
         # Buttons
         button_frame = tk.Frame(content_frame)
@@ -68,6 +107,78 @@ class RegisterView:
         back_button = tk.Button(button_frame, text="Back to Login", command=self.back_to_login,
                               width=12, height=2, font=("Arial", 11))
         back_button.pack(side=tk.LEFT)
+    
+    def update_username_char_count(self, event=None):
+        """Update the character count display for the username."""
+        current_length = len(self.username_entry.get())
+        self.username_char_count.config(text=f"{current_length}/20 characters")
+        
+        # Change color based on character count
+        if current_length > 18:
+            self.username_char_count.config(fg="red")
+        elif current_length > 15:
+            self.username_char_count.config(fg="orange")
+        else:
+            self.username_char_count.config(fg="gray")
+    
+    def limit_username_input(self, event):
+        """Prevent input beyond 20 characters for username."""
+        # Allow special keys (backspace, delete, arrow keys, etc.)
+        if event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Home', 'End', 'Tab']:
+            return
+        
+        # Check if we're at the character limit
+        current_text = self.username_entry.get()
+        if len(current_text) >= 20:
+            return "break"  # Prevent the keystroke
+    
+    def update_password_char_count(self, event=None):
+        """Update the character count display for the password."""
+        current_length = len(self.password_entry.get())
+        self.password_char_count.config(text=f"{current_length}/30 characters")
+        
+        # Change color based on character count
+        if current_length > 27:
+            self.password_char_count.config(fg="red")
+        elif current_length > 22:
+            self.password_char_count.config(fg="orange")
+        else:
+            self.password_char_count.config(fg="gray")
+    
+    def limit_password_input(self, event):
+        """Prevent input beyond 30 characters for password."""
+        # Allow special keys (backspace, delete, arrow keys, etc.)
+        if event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Home', 'End', 'Tab']:
+            return
+        
+        # Check if we're at the character limit
+        current_text = self.password_entry.get()
+        if len(current_text) >= 30:
+            return "break"  # Prevent the keystroke
+    
+    def update_confirm_char_count(self, event=None):
+        """Update the character count display for the confirm password."""
+        current_length = len(self.confirm_entry.get())
+        self.confirm_char_count.config(text=f"{current_length}/30 characters")
+        
+        # Change color based on character count
+        if current_length > 27:
+            self.confirm_char_count.config(fg="red")
+        elif current_length > 22:
+            self.confirm_char_count.config(fg="orange")
+        else:
+            self.confirm_char_count.config(fg="gray")
+    
+    def limit_confirm_input(self, event):
+        """Prevent input beyond 30 characters for confirm password."""
+        # Allow special keys (backspace, delete, arrow keys, etc.)
+        if event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Home', 'End', 'Tab']:
+            return
+        
+        # Check if we're at the character limit
+        current_text = self.confirm_entry.get()
+        if len(current_text) >= 30:
+            return "break"  # Prevent the keystroke
     
     def register(self):
         """Handle the registration process."""
@@ -82,6 +193,15 @@ class RegisterView:
 
         if not username or not password or not confirm:
             messagebox.showerror("Error", "All fields are required")
+            return
+        
+        # Validate character limits
+        if len(username) > 20:
+            messagebox.showerror("Error", "Username must be 20 characters or less")
+            return
+        
+        if len(password) > 30:
+            messagebox.showerror("Error", "Password must be 30 characters or less")
             return
         
         if password != confirm:
