@@ -170,7 +170,7 @@ class App:
 
     def on_close(self):
         """Ask the user to confirm before closing the app."""
-        response = messagebox.askyesno('Exit', 'Are you sure you want to exit?')
+        response = messagebox.askyesno('Exit', 'Are you sure you want to close to the application?')
         if response:
             print(f"\n{(datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")} | You have closed the app. We hope to see you again.\n")
             self.root.destroy()
