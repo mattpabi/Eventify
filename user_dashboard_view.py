@@ -3,7 +3,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import datetime
-from stage_view import StageView
 
 class UserDashboardView:
     def __init__(self, root, db_manager, username, logout_callback=None):
@@ -355,29 +354,30 @@ class UserDashboardView:
         details_button.pack(side=tk.RIGHT, padx=(0, 10))
     
     def open_stage_view(self, event):
-        """Open the stage view for selecting seats.
+        """Open the stage view for selecting seats in the same window.
         
         Args:
             event: The event to select seats for
         """
-        # Hide current frame
-        self.frame.pack_forget()
+        # Import here to avoid circular import
+        from stage_view import StageView
         
-        # Create new toplevel window
-        stage_view_window = tk.Toplevel(self.root)
-        stage_view_window.title(f"Select Seats - {event['name']}")
-        stage_view_window.state('zoomed')  # Maximize the window
+        # Clear the current frame
+        for widget in self.root.winfo_children():
+            widget.destroy()
         
         # Back callback to return to dashboard
         def back_to_dashboard():
-            stage_view_window.destroy()
-            self.frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-            # Refresh events to show any new reservations
-            self.load_events()
+            # Clear the stage view
+            for widget in self.root.winfo_children():
+                widget.destroy()
+            
+            # Recreate the dashboard
+            self.__init__(self.root, self.db_manager, self.username, self.logout_callback)
         
-        # Create StageView instance
+        # Create StageView instance in the same root window
         self.stage_view = StageView(
-            stage_view_window, 
+            self.root, 
             self.db_manager,
             event['id'],
             self.username,
