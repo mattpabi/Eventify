@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import datetime
+import os
+import sys
 
 class UserDashboardView:
     def __init__(self, root, db_manager, username, logout_callback=None):
@@ -202,7 +204,7 @@ class UserDashboardView:
     
     def get_available_seats_count(self, event_id):
         """
-        Method that calculates how many seats are still available for booking at an event.
+        Method that calculates how many seats are still available for reservation at an event.
 
         The event_id parameter is the unique ID number of the event to check.
         """
@@ -254,7 +256,7 @@ class UserDashboardView:
     
     def display_available_events(self, available_events):
         """
-        Method that creates visual cards for events available for booking.
+        Method that creates visual cards for events available for reservation.
 
         The available_events parameter is the list of all future events that can be booked.
         """
@@ -284,6 +286,47 @@ class UserDashboardView:
             event_with_seats['available_seats'] = available_seats
             # Create event card, marking it as not reserved
             self.create_event_card(self.available_scrollable_frame, event_with_seats, is_reserved=False)
+    
+    def generate_qr_code(self, event):
+        """
+        Method that generates a QR code for a reserved event using the integrated QR code generator.
+        
+        The event parameter is a dictionary containing the event information and reserved seats
+        """
+        try:
+            # Import the QR code generator
+            from make_qr import generate_reservation_qr
+            
+            # Create reservation information string
+            seat_numbers = [str(seat) for seat in event['reserved_seats']]
+            seats_str = ", ".join(seat_numbers)
+            
+            # Format reservation info: USERNAME -- EVENT NAME -- SEATS
+            reservation_info = f"{self.username} -- {event['name']} -- SEATS {seats_str}"
+            
+            # Create images directory if it doesn't exist
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            images_dir = os.path.join(script_dir, "images", "qrcode")
+            os.makedirs(images_dir, exist_ok=True)
+            
+            # Generate filename with event ID and username for uniqueness
+            filename = f"reservation_qr_event{event['id']}_{self.username}.ppm"
+            ppm_path = os.path.join(images_dir, filename)
+            
+            # Generate the QR code with parent window integration
+            generate_reservation_qr(
+                reservation_info, 
+                ppm_filename=ppm_path,
+                parent_window=self.root  # Pass the dashboard window as parent
+            )
+            
+        except ImportError:
+            messagebox.showerror(
+                "Error", 
+                "QR code generator module not found. Please ensure make_qr.py is in the same directory."
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate QR code: {str(e)}")
     
     def create_event_card(self, parent_frame, event, is_reserved=False):
         """
@@ -405,16 +448,28 @@ class UserDashboardView:
         
         # Create different buttons depending on whether event is reserved or not
         if is_reserved:
+            # For reserved events, add QR code generation button
+            qr_button = tk.Button(
+                button_frame,
+                text="Generate QR Code",
+                # Lambda function is an anonymous function used to call the generate_qr_code method
+                command=lambda e=event: self.generate_qr_code(e),
+                width=19,
+                bg="lightgreen",  # Light green background to make it stand out
+                font=("Arial", 9, "bold")
+            )
+            qr_button.pack(side=tk.RIGHT, padx=(0, 5))
+            
             # For reserved events, allow user to view/modify their seat selection
             view_seats_button = tk.Button(
                 button_frame,
                 text="View/Modify Seats",
                 # Lambda function is an anonymous function used to pass the event data when button is clicked
                 command=lambda e=event: self.open_stage_view(e),
-                width=20
+                width=18
             )
             # Position button on the right side
-            view_seats_button.pack(side=tk.RIGHT)
+            view_seats_button.pack(side=tk.RIGHT, padx=(0, 5))
         else:
             # For available events, allow user to reserve seats
             reserve_button = tk.Button(

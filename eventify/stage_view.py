@@ -634,7 +634,7 @@ class StageView:
         if result['success']:
             # Create readable list of successfully booked seats
             booked_seats = ', '.join([f"{row}{num}" for row, num in result['reserved']])
-            messagebox.showinfo("Booking Successful", f"You have reserved seats: {booked_seats}")
+            messagebox.showinfo("Booking Successful", f"You have reserved seats: {booked_seats}\n\n Go to your dashboard to save the QR Code of your reservation. Event staff will verify your QR Code upon entry.")
             
             # Update local reservation data
             self.user_reservation_count += len(result['reserved'])  # Update count

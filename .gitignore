@@ -1,10 +1,10 @@
 # Self-added
 *.DS_Store
 /eventify/images/logo.*
+/eventify/images/qrcode
 /tests
 *.sqlite3
 *.db
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
