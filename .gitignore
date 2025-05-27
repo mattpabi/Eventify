@@ -1,6 +1,6 @@
 # Self-added
 *.DS_Store
-/images/logo.*
+/eventify/images/logo.*
 /tests
 *.sqlite3
 *.db
