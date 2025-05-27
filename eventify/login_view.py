@@ -113,7 +113,7 @@ class LoginView:
             self.show_dashboard(username)
         else:
             # Login failed - show error message
-            messagebox.showerror("Error", "Invalid username or password")
+            messagebox.showerror("Error", "Invalid username or password\n\nNote: both username and password are case-sensitive")
     
     def show_dashboard(self, username):
         """
